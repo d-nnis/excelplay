@@ -6,7 +6,6 @@ use warnings;
 #use lib('C:\\Dokumente und Einstellungen\\huesemann.POLYINTERN\\Eigene Dateien\\workspace\\V6\\');
 # home
 #use lib('C:\\Documents and Settings\\dennis\\My Documents\\workspace\\PMs\\');
-#use lib('');
 use Essent;
 # Excel-part
 use Win32::OLE qw(in with);
