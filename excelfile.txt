@@ -1,0 +1,30 @@
+s Excelobject
+S Excelobject
+Excelobject::init_Excelfile
+Excelobject::init_Excelfile(f:\\telefonbuch_6233.xlsx,1)
+Excelobject::init_Excelfile("f:\\telefonbuch_6233.xlsx",1)
+Excelobject::init_Excelfile("f:\\telefonbuch_6233.xlsx")
+Excelobject::init_Excelfile("f:\\telefonbuch_6233.xlsx",2)
+Excelobject::init_newExcelfile("f:\\telefonbuch_6233.xlsx",1)
+Excelobject::init_newExcelfile("f:\\telefonbuch_6233.xlsx",1)
+my $eo = Excelobject->new();
+s $eo
+x $eo
+$eo->init_newExcelfile("f:\\telefonbuch_6233.xlsx",1);
+$eo = Excelobject->new();
+x $eo
+$eo->init_newExcelfile("f:\\telefonbuch_6233.xlsx",1);
+$eo->readcol(2);
+@vals = $eo->readcol(2);
+x @vals
+$eo->pos(5,5)
+$eo->writeval($val[1])
+$eo->writeval("tee")
+x @val
+$eo->writeval($vals[1])
+!
+$eo->writeval($vals[1])
+H
+#save
+#save "excelfile.txt"
+#save excelfile.txt
