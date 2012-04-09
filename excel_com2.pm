@@ -2,6 +2,7 @@ use feature "switch";
 use File::Copy;
 use strict;
 use warnings;
+use feature qw/say/;
 # popri
 #use lib('C:\\Dokumente und Einstellungen\\huesemann.POLYINTERN\\Eigene Dateien\\workspace\\V6\\');
 # home
@@ -24,102 +25,75 @@ print "Modul excel_com.pm importiert.\n";
 		bless($self, $class);
 		return $self;
 	}
-	sub init_Excelfile {
-		my $self = shift;
-		my $file = shift;
-		my $sheet = shift;
-		
-		##
-		my $Count = Win32::OLE->EnumAllObjects(sub {
-			my $Object = shift;
-			my $Class = Win32::OLE->QueryObjectType($Object);
-			printf "# Object=%s Class=%s\n", $Object, $Class;
-		});
-
-		print $Count;
-		##
-		my $Excel = Win32::OLE->GetActiveObject('Excel.Application')
-			|| Win32::OLE->new('Excel.Application', 'Quit');
-		#my $Book = $Excel->Workbooks->Add($_[0]);
-		my $Book = $Excel->Workbooks->Open($file);
-		#$self->{WORKSHEET} = $Book->Worksheets($self->{WORKSHEETNR});
-		$self->{WORKSHEET} = $Book->Worksheets($sheet);	
-	}
 	
 	sub init {
 		my $self = shift;
 		# use existing instance if Excel is already running
 		my $ex;
+		# TODO: test, wenn keine Excel-Instanz laeuft etc.
+		# TODO: bestimmtes Excel-File öffnen
+		# TODO: alle Excel-Threads erfassen und aufzählen/ wählen, CREATOR?
+		# You can also directly attach your program to an already running OLE server:
 		eval {$ex = Win32::OLE->GetActiveObject('Excel.Application')};
         die "Excel not installed" if $@;
-        unless (defined $ex) {
-            $ex = Win32::OLE->new('Excel.Application', sub {$_[0]->Quit;})
+		my $countobjects = Win32::OLE->EnumAllObjects();
+		
+        # You can create a new OLE server object with Win32::OLE->new. This takes a program ID (a human readable string like 'Speech.VoiceText') and returns a server object:
+		unless (defined $ex) {
+			#$ex = Win32::OLE->new('Excel.Application', 'Quit');
+			#$ex = Win32::OLE->new('Excel.Application', sub {$_[0]->Quit;})
+			$ex = Win32::OLE->new('Excel.Application', 'Quit')
                     or die "Oops, cannot start Excel";
         }
-		my $count = $ex->Worksheets->Count;
-		print "$count Sheets: ";
-		foreach (1 .. $count) {
+		## suche window aus?
+		my $window_count = $ex->Windows->Count;
+		if ($window_count == 0) {
+			$ex->Windows(1)->Open;
+			#$ex->Windows->Add;
+		} else {
+			print "$window_count Windows: ";
+			foreach (1..$window_count) {
+				print "$_:".$ex->Windows($_)->Parent->Name.",";
+				# oder: $ex->ActiveWindow->Caption;
+			}
+			print "\n";
+			my $parent = $ex->Windows(1)->Parent->Name;
+			my $active2 = $ex->ActiveWorkbook;
+			#my $item2 = $ex->Windows(1)->Item->Name;
+			#my $item = $ex->Windows->Item(1)->Name;
+			# Can't modify non-lvalue subroutine call at excel_com2.pm line 62.
+			#$ex->Windows(1)->WindowState = 'xlMaximized';
+			#$ex->Windows(1)->hidden = 'false';
+			print "";
+		}
+		## suche workbook aus
+		my $workb_count = $ex->Workbooks->Count;
+		if ($workb_count == 0) {
+			$ex->Workbooks->Add;
+		} else {
+			print "$workb_count Workbooks: ";
+			foreach (1..$workb_count) {
+				print "$_:".$ex->Workbooks($_)->Name.",";
+			}
+			print "\n";
+			my $workb_select = main::confirm_numcount($workb_count);
+			$ex->Workbooks($workb_select)->Activate;
+			print "select workbook: '", $ex->Workbooks($workb_select)->Name, "'\n";
+		}
+		
+		##
+		## suche worksheet aus
+		my $works_count = $ex->Worksheets->Count;
+		print "$works_count Sheets: ";
+		foreach (1 .. $works_count) {
 			print "$_:".$ex->Worksheets($_)->Name.",";
 		}
 		print "\n";
-		my $choice = main::confirm_numcount($count);
-		chomp $choice;
-		$self->{WORKSHEET} = $ex->Worksheets($choice);	# warum funzt nich??
-		# warum funzt??
-		#$self->{WORKSHEET} = $ex->Worksheets(1);
+		my $works_select = main::confirm_numcount($works_count);
+		## TODO: ausbauen um mit mehreren Sheets zu arbeiten
+		$self->{WORKSHEET} = $ex->Worksheets($works_select);
+		print "select worksheet: '", $ex->Worksheets($works_select)->Name, "'\n";
 		return $ex;
-	}
-	
-	sub init_newExcelfile {
-		my $self = shift;
-		my $excelfile = shift;
-		my $sheetno = shift;
-		my $Excel = Win32::OLE->GetActiveObject('Excel.Application')
-			|| Win32::OLE->new('Excel.Application', 'Quit');
-		my $Book;
-		#print "excelfile:", $excelfile, "\n";
-		if (-e $excelfile) {
-			$Book = $Excel->Workbooks->Open($excelfile);
-			$self->{WORKSHEET} = $Book->Worksheets($sheetno);
-		} else {
-			$Book = $Excel->Workbooks->Add;
-			$Book->Worksheets($sheetno);
-		}
-	}
-	
-	sub bildd_dirs {
-		my $self = shift;
-		if (@_) {
-			$self->{bildd_dir_rel} = $_[0] if ($_[0]);
-			$self->{bildd_dir_nest} = $_[1] if ($_[1]);
-		}
-		return ($self->{bildd_dir_rel}, $self->{bildd_dir_nest});
-	}
-	
-	sub last_row {
-		my $self = shift;
-		my $startrow = shift;
-		my $col = shift;
-		my $i = 0;
-		while (defined($self->{WORKSHEET}->Cells($startrow + $i, $col)->{'Value'} )) {
-			$i++;
-		}
-		return $i+$startrow-1;
-	}
-	
-	sub readcol {
-		my $self = shift;
-		my @colarray;
-		my $col = shift;
-		my $row = shift || 1;
-
-		# row, column
-		#print "readcol:";#, $self->{WORKSHEET}->Cells($row, $col)->{'Value'}, "\n";
-		while ( defined($self->{WORKSHEET}->Cells($row, $col)->{'Value'} )) {
-			push(@colarray, $self->{WORKSHEET}->Cells($row, $col)->{'Value'});
-			$row++;
-		}
-		return @colarray;
 	}
 	
 	sub pos {
@@ -128,6 +102,149 @@ print "Modul excel_com.pm importiert.\n";
 		$self->{col} = shift;
 	}
 	
+	## Zeile 1 in Spalten
+	## Zeile 2 in Spalten darunter
+	## was ist mit leeren Zellen?
+	sub Zeilen_in_1Spalte {
+		my $self = shift;
+		my $readrow = shift;
+		my $readcol = shift;
+		my $writerow = shift;
+		my $writecol = shift;
+		unless (defined $writerow && defined $writecol) {
+			$writerow = $self->lastlast_row($readcol)+1;
+			$writecol = $readcol;
+		}
+		# TODO: suche erste freie Zeile zum Beschreiben
+
+		while (my $vals_ref = [ $self->readrow($readrow, $readcol) ] ) {
+			say $readrow.",";
+			my @vals = @{$vals_ref};
+			my $vals_count = scalar @vals;
+			last if ($vals_count == 0);			
+
+			
+			## neu
+			my @vals_n;
+			#my @vals_n = map {[$_]} @vals;
+			# Ersatz:
+			foreach (@vals) {
+				my $insert;
+				if ($_=~ /^0/) {
+					$insert = "=TEXT($_;\"00000\")";
+				} else {
+					$insert = $_;
+				}
+				push @vals_n, $insert;
+			}
+			@vals_n = map {["=TEXT($_;\"00000\")"]} @vals;
+			my $range_start = $self->{WORKSHEET}->Cells($writerow,$writecol);
+			my $range_end = $self->{WORKSHEET}->Cells($writerow+$vals_count-1,$writecol);
+			$writerow = $writerow + $vals_count;
+			$self->{range} = $self->{WORKSHEET}->Range($range_start,$range_end);
+			$self->{range}->{'Value'} = [@vals_n];	# [[1],[2],[3],[4]];	
+			## neu/
+			
+			## TODO: Benchmarking
+			## nur map?
+			## schneller als mit writeval?
+			
+			
+			#foreach my $val (@vals) {
+			#	$self->pos($writerow, $writecol);
+			#	$self->writeval($val);
+			#	$writerow++;
+			#}
+			$readrow++;
+		}
+	}
+	
+	sub writecol {
+		my $self = shift;
+		# als Range rein packen??
+	}
+	
+	sub Spalten_in_1Zeile {
+		my $self = shift;
+		
+	}
+	
+	sub lastlast_row {
+		my $self = shift;
+		my $col = shift;
+		# my $range = $self->{WORKSHEET}->Cells($caseln, $col);
+		# Range("A65536").End(xlup).Select
+		#my $lastlast_row = $self->{WORKSHEET}->Range($col,65536)->End('xlup')->Select;
+		#$self->{WORKSHEET}->Cells($col,65536)->End('xlup')->Select;
+		#my $cell = $self->{WORKSHEET}->Cells($col,65536);
+		#my $LastRow = $self->{WORKSHEET}->Range("A1")->SpecialCells('xlCellTypeLastCell')->Row;
+		#my $c = $self->{WORKSHEET}->Rows->Count("A");
+		#my $LastRow = $self->{WORKSHEET}->Cells("A100")->SpecialCells('xlCellTypeLastCell')->Row;
+		#my $lastrow = $self->{WORKSHEET}->Cells->SpecialCells('xlCellTypeLastCell')->Activate;
+		my $cell = $self->{WORKSHEET}->Cells($col,100)->Row;
+		#my $range = $self->{WORKSHEET}->Range("A200");
+		$self->{WORKSHEET}->Cells(200,1)->Select;
+		#$self->{WORKSHEET}->Cells(200,1)->End('xlUp')->Select;
+		my $tee = $self->{WORKSHEET}->Range("A200")->{'End(xlUp)'};
+		# ->End("xlUp");
+		my $lastlast_row = $self->{WORKSHEET}->Range("A200")->End->{'xlUp'}->Select;
+		#1048576
+		return $lastlast_row;
+	}
+
+	# stop bei erster leeren Zelle
+	sub last_row {
+		my $self = shift;
+		my $startrow = shift;
+		my $col = shift;
+		my $i = 1;
+		while (defined($self->{WORKSHEET}->Cells($startrow + $i, $col)->{'Value'} )) {
+			$i++;
+		}
+		return ($i+$startrow, $col);
+	}
+	
+	sub last_col {
+		my $self = shift;
+		my $row = shift;
+		my $startcol = shift;
+		my $i = 1;
+		while (defined($self->{WORKSHEET}->Cells($row, $startcol+$i)->{'Value'} )) {
+			$i++;
+		}
+		return ($row, $i+$startcol);
+	}
+	
+	sub readcol {
+		my $self = shift;
+		my @colarray;
+		my $col = shift;
+		my $row = shift || 1;
+		# row, column
+		#print "readcol:";#, $self->{WORKSHEET}->Cells($row, $col)->{'Value'}, "\n";
+		while ( defined($self->{WORKSHEET}->Cells($row, $col)->{'Value'} )) {
+			push(@colarray, $self->{WORKSHEET}->Cells($row, $col)->{'Value'});
+			$row++;
+		}
+		return @colarray;
+	}
+
+	sub readrow {
+		my $self = shift;
+		my @rowarray;
+		my $row = shift;
+		my $col = shift || 1;
+		# row, column
+		while ( defined($self->{WORKSHEET}->Cells($row, $col)->{'Value'} )) {
+			push(@rowarray, $self->{WORKSHEET}->Cells($row, $col)->{'Value'});
+			$col++;
+		}
+		return @rowarray;
+	}	
+	
+	
+
+	# mit Handling für Zahlen
 	sub writeval {
 		my $self = shift;
 		my $val = shift;
@@ -141,9 +258,16 @@ print "Modul excel_com.pm importiert.\n";
 		#$self->{WORKSHEET}->Cells($self->{row},$self->{col})->{'Value'} = "=TEXT($val;\"00000\")"; 
 	} 
 	
-	sub incr_cell {
+#########
+## alt ##
+#########
+	sub bildd_dirs {
 		my $self = shift;
-		
+		if (@_) {
+			$self->{bildd_dir_rel} = $_[0] if ($_[0]);
+			$self->{bildd_dir_nest} = $_[1] if ($_[1]);
+		}
+		return ($self->{bildd_dir_rel}, $self->{bildd_dir_nest});
 	}
 	
 	sub add_head {
@@ -250,6 +374,28 @@ print "Modul excel_com.pm importiert.\n";
 			40					# Height As Single
 		);
 		print "";
+	}
+	
+	sub init_Excelfile {
+		my $self = shift;
+		my $file = shift;
+		my $sheet = shift;
+		
+		##
+		my $Count = Win32::OLE->EnumAllObjects(sub {
+			my $Object = shift;
+			my $Class = Win32::OLE->QueryObjectType($Object);
+			printf "# Object=%s Class=%s\n", $Object, $Class;
+		});
+
+		print $Count;
+		##
+		my $Excel = Win32::OLE->GetActiveObject('Excel.Application')
+			|| Win32::OLE->new('Excel.Application', 'Quit');
+		#my $Book = $Excel->Workbooks->Add($_[0]);
+		my $Book = $Excel->Workbooks->Open($file);
+		#$self->{WORKSHEET} = $Book->Worksheets($self->{WORKSHEETNR});
+		$self->{WORKSHEET} = $Book->Worksheets($sheet);	
 	}
 }
 
@@ -380,7 +526,7 @@ sub confirm_numcount {
 		$eingabe = <STDIN>;
 		chomp $eingabe;
 	}
-	return $eingabe;
+	return $eingabe+0;
 }
 
 
