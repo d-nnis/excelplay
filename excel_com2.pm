@@ -135,9 +135,10 @@ print "Modul excel_com.pm importiert.\n";
 				} else {
 					$insert = $_;
 				}
-				push @vals_n, $insert;
+				push @vals_n, [$insert];
 			}
-			@vals_n = map {["=TEXT($_;\"00000\")"]} @vals;
+			#@vals_n = map {[$_]} @vals;
+			#@vals_n = map {["=TEXT($_;\"00000\")"]} @vals;
 			my $range_start = $self->{WORKSHEET}->Cells($writerow,$writecol);
 			my $range_end = $self->{WORKSHEET}->Cells($writerow+$vals_count-1,$writecol);
 			$writerow = $writerow + $vals_count;

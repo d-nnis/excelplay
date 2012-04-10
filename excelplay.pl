@@ -11,7 +11,7 @@ my $excelobj = Excelobject->new();
 #$excelobj->init($excelfile,4);
 $excelobj->init();
 # $excelobj->Zeilen_in_1Spalte(2,6);	# find last cell funktioniert nicht
-$excelobj->Zeilen_in_1Spalte(2,1,30,1);
+$excelobj->Zeilen_in_1Spalte(1,1,10,2);
 
 #########
 ## alt ##
