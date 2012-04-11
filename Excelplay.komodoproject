@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Komodo Project File - DO NOT EDIT -->
-<project id="8402a632-472c-4bcd-ac72-c440adfc82c7" kpf_version="5" name="Excelplay.komodoproject">
+<project id="f1c5f86f-f8c1-45f4-86cb-e3e3cedf698d" kpf_version="5" name="Excelplay.komodoproject">
+<preference-set idref="f1c5f86f-f8c1-45f4-86cb-e3e3cedf698d">
+  <boolean id="import_live">1</boolean>
+</preference-set>
 </project>

@@ -13,7 +13,7 @@ use Win32::OLE qw(in with);
 use Win32::OLE::Const 'Microsoft Excel';
 $Win32::OLE::Warn = 3;
 
-print "Modul excel_com.pm importiert.\n";
+print "Modul excel_com2.pm importiert.\n";
 
 {
 	package Excelobject;
