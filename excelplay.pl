@@ -5,13 +5,13 @@ use feature qw/say/;
 
 # get active OLE automation objects: program or class id
 
-
+#tee
 #my $excelfile = "f:\\poly\\HU-tp4\\2012-03-15 Vereinsliste aktive.xlsx";
 my $excelobj = Excelobject->new();
 #$excelobj->init($excelfile,4);
 $excelobj->init();
-# $excelobj->Zeilen_in_1Spalte(2,6);	# find last cell funktioniert nicht
-$excelobj->Zeilen_in_1Spalte(1,1,10,2);
+$excelobj->Zeilen_in_1Spalte(1,1);	# find last cell funktioniert nicht
+#$excelobj->Zeilen_in_1Spalte(1,1,16,2);
 
 #########
 ## alt ##

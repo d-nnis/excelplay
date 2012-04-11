@@ -1,17 +1,16 @@
-use feature "switch";
 use File::Copy;
 use strict;
 use warnings;
-use feature qw/say/;
-# popri
-#use lib('C:\\Dokumente und Einstellungen\\huesemann.POLYINTERN\\Eigene Dateien\\workspace\\V6\\');
-# home
-#use lib('C:\\Documents and Settings\\dennis\\My Documents\\workspace\\PMs\\');
-use Essent;
-# Excel-part
+use feature qw(say switch);
+#use Essent;
+
 use Win32::OLE qw(in with);
+
+# TODO welche Funktionen brauche ich?
 use Win32::OLE::Const 'Microsoft Excel';
+# TODO Welche Konstanten sind mir dadurch zugänglich?
 $Win32::OLE::Warn = 3;
+#The value of $Win32::OLE::Warn determines what happens when an OLE error occurs. If it's 0, the error is ignored. If it's 2, or if it's 1 and the script is running under -w, the Win32::OLE module invokes Carp::carp(). If $Win32::OLE::Warn is set to 3, Carp::croak() is invoked and the program dies immediately.
 
 print "Modul excel_com2.pm importiert.\n";
 
@@ -29,78 +28,55 @@ print "Modul excel_com2.pm importiert.\n";
 	sub init {
 		my $self = shift;
 		# use existing instance if Excel is already running
-		my $ex;
+		my $excel;
 		# TODO: test, wenn keine Excel-Instanz laeuft etc.
 		# TODO: bestimmtes Excel-File öffnen
 		# TODO: alle Excel-Threads erfassen und aufzählen/ wählen, CREATOR?
 		# You can also directly attach your program to an already running OLE server:
-		eval {$ex = Win32::OLE->GetActiveObject('Excel.Application')};
+		print "Count OLE-Objects:", Win32::OLE->EnumAllObjects(),"\n";
+		eval {$excel = Win32::OLE->GetActiveObject('Excel.Application')};
         die "Excel not installed" if $@;
-		my $countobjects = Win32::OLE->EnumAllObjects();
-		
-        # You can create a new OLE server object with Win32::OLE->new. This takes a program ID (a human readable string like 'Speech.VoiceText') and returns a server object:
-		unless (defined $ex) {
-			#$ex = Win32::OLE->new('Excel.Application', 'Quit');
+        # create new excel-server, returns a server object
+		unless (defined $excel) {
 			#$ex = Win32::OLE->new('Excel.Application', sub {$_[0]->Quit;})
-			$ex = Win32::OLE->new('Excel.Application', 'Quit')
-                    or die "Oops, cannot start Excel";
+			$excel = Win32::OLE->new('Excel.Application', 'Quit')
+                    or die "Cannot start Excel";
         }
-		## suche window aus?
-		my $window_count = $ex->Windows->Count;
-		if ($window_count == 0) {
-			$ex->Windows(1)->Open;
-			#$ex->Windows->Add;
-		} else {
-			print "$window_count Windows: ";
-			foreach (1..$window_count) {
-				print "$_:".$ex->Windows($_)->Parent->Name.",";
-				# oder: $ex->ActiveWindow->Caption;
-			}
-			print "\n";
-			my $parent = $ex->Windows(1)->Parent->Name;
-			my $active2 = $ex->ActiveWorkbook;
-			#my $item2 = $ex->Windows(1)->Item->Name;
-			#my $item = $ex->Windows->Item(1)->Name;
-			# Can't modify non-lvalue subroutine call at excel_com2.pm line 62.
-			#$ex->Windows(1)->WindowState = 'xlMaximized';
-			#$ex->Windows(1)->hidden = 'false';
-			print "";
-		}
-		## suche workbook aus
-		my $workb_count = $ex->Workbooks->Count;
+		my $workb_count = $excel->Workbooks->Count;
 		if ($workb_count == 0) {
-			$ex->Workbooks->Add;
+			$excel->Workbooks->Add;
+		} elsif ($workb_count == 1) {
+			print "select workbook: '", $excel->Workbooks(1)->Name, "'\n";
 		} else {
 			print "$workb_count Workbooks: ";
 			foreach (1..$workb_count) {
-				print "$_:".$ex->Workbooks($_)->Name.",";
+				print "$_:".$excel->Workbooks($_)->Name.",";
 			}
 			print "\n";
 			my $workb_select = main::confirm_numcount($workb_count);
-			$ex->Workbooks($workb_select)->Activate;
-			print "select workbook: '", $ex->Workbooks($workb_select)->Name, "'\n";
+			$excel->Workbooks($workb_select)->Activate;
+			print "select workbook: '", $excel->Workbooks($workb_select)->Name, "'\n";
 		}
 		
 		##
 		## suche worksheet aus
-		my $works_count = $ex->Worksheets->Count;
+		my $works_count = $excel->Worksheets->Count;
 		print "$works_count Sheets: ";
-		foreach (1 .. $works_count) {
-			print "$_:".$ex->Worksheets($_)->Name.",";
+		if ($works_count == 1) {
+			print "select worksheet: '", $excel->Worksheets(1)->Name, "'\n";
+		} else {
+			foreach (1 .. $works_count) {
+				print "$_:".$excel->Worksheets($_)->Name.",";
+			}
+			print "\n";
+			my $works_select = main::confirm_numcount($works_count);
+			## TODO: ausbauen um mit mehreren Sheets zu arbeiten
+			$self->{WORKSHEET} = $excel->Worksheets($works_select);
+			print "select worksheet: '", $excel->Worksheets($works_select)->Name, "'\n";
 		}
-		print "\n";
-		my $works_select = main::confirm_numcount($works_count);
-		## TODO: ausbauen um mit mehreren Sheets zu arbeiten
-		$self->{WORKSHEET} = $ex->Worksheets($works_select);
-		print "select worksheet: '", $ex->Worksheets($works_select)->Name, "'\n";
-		return $ex;
+		return $excel;
 	}
-	
-	sub pos {
-		my $self = shift;
-		$self->{row} = shift;
-		$self->{col} = shift;
-	}
+
 	
 	## Zeile 1 in Spalten
 	## Zeile 2 in Spalten darunter
@@ -116,13 +92,12 @@ print "Modul excel_com2.pm importiert.\n";
 			$writecol = $readcol;
 		}
 		# TODO: suche erste freie Zeile zum Beschreiben
-
+		
 		while (my $vals_ref = [ $self->readrow($readrow, $readcol) ] ) {
 			say $readrow.",";
 			my @vals = @{$vals_ref};
 			my $vals_count = scalar @vals;
-			last if ($vals_count == 0);			
-
+			last if ($vals_count == 0);
 			
 			## neu
 			my @vals_n;
@@ -159,6 +134,12 @@ print "Modul excel_com2.pm importiert.\n";
 			$readrow++;
 		}
 	}
+		
+	sub pos {
+		my $self = shift;
+		$self->{row} = shift;
+		$self->{col} = shift;
+	}
 	
 	sub writecol {
 		my $self = shift;
@@ -182,11 +163,12 @@ print "Modul excel_com2.pm importiert.\n";
 		#my $c = $self->{WORKSHEET}->Rows->Count("A");
 		#my $LastRow = $self->{WORKSHEET}->Cells("A100")->SpecialCells('xlCellTypeLastCell')->Row;
 		#my $lastrow = $self->{WORKSHEET}->Cells->SpecialCells('xlCellTypeLastCell')->Activate;
-		my $cell = $self->{WORKSHEET}->Cells($col,100)->Row;
-		#my $range = $self->{WORKSHEET}->Range("A200");
-		$self->{WORKSHEET}->Cells(200,1)->Select;
+		
+		
+		#my $cell = $self->{WORKSHEET}->Cells($col,100)->Select;
+		#$self->{WORKSHEET}->Cells(200,1)->Select;
 		#$self->{WORKSHEET}->Cells(200,1)->End('xlUp')->Select;
-		my $tee = $self->{WORKSHEET}->Range("A200")->{'End(xlUp)'};
+		my $tee = $self->{WORKSHEET}->Range("A200")->Select;
 		# ->End("xlUp");
 		my $lastlast_row = $self->{WORKSHEET}->Range("A200")->End->{'xlUp'}->Select;
 		#1048576
@@ -478,8 +460,6 @@ print "Modul excel_com2.pm importiert.\n";
 	}
 	sub read_version_structure {
 		my $self=shift;
-		#my $empty = $self->{WORKSHEET}->Cells(5,1)->{'Value'};
-		#my $version = $self->{WORKSHEET}->Cells($self->{startrow}, $self->{startcolumn})->{'Value'};
 		my $version = $self->{WORKSHEET}->Cells(4, 2)->{'Value'};
 		my $maxseiten =  $self->{WORKSHEET}->Cells(4, 1)->{'Value'};
 		# aufgabenblock
@@ -510,10 +490,6 @@ print "Modul excel_com2.pm importiert.\n";
 	}
 	
 	# @ver_cols = (\$version, \$maxseiten, \@ab, \@defseite, \@seitenum, \@itemnum, \@itemErgebnis_pos, \@bildd_pos, \@itemSchnipsel_pos);
-	
-	
-	
-	
 }
 
 
@@ -530,6 +506,59 @@ sub confirm_numcount {
 	return $eingabe+0;
 }
 
+__END__
 
+## ausgesondert
+		## suche window aus?
+		#my $window_count = $ex->Windows->Count;
+		#if ($window_count == 0) {
+		#	$ex->Windows(1)->Open;
+		#	#$ex->Windows->Add;
+		#} else {
+		#	print "$window_count Windows: ";
+		#	foreach (1..$window_count) {
+		#		print "$_:".$ex->Windows($_)->Parent->Name.",";
+		#		# oder: $ex->ActiveWindow->Caption;
+		#	}
+		#	print "\n";
+		#	my $parent = $ex->Windows(1)->Parent->Name;
+		#	my $active2 = $ex->ActiveWorkbook;
+		#	print "";
+		#}
+		## suche workbook aus
+##
+
+###########
+## learn ##
+###########
+$server->{Bar} = $value;
+$value = $server->{Bar};
+# assign value of $server
+$value = valof $server;
+# das selbe!?
+$value = $server->Invoke('');
+
+# Objekt-Verschachtelung abkürzen
+my $workbook = $excel->Workbooks;
+my $workb_count = $workbook->Count;
+
+# with
+with($Chart, HasLegend => 0, HasTitle => 1);
+
+
+#####
+
+    # program continues
+
+    =begin comment text
+
+    all of this stuff
+
+    here will be ignored
+    by everyone
+
+    =end comment text
+
+    =cut
 
 1;
