@@ -10,8 +10,15 @@ use feature qw/say/;
 my $excelobj = Excelobject->new();
 #$excelobj->init($excelfile,4);
 $excelobj->init();
-$excelobj->Zeilen_in_1Spalte(1,1);	# find last cell funktioniert nicht
+#$excelobj->Zeilen_in_1Spalte(1,1);	# find last cell funktioniert nicht
 #$excelobj->Zeilen_in_1Spalte(1,1,16,2);
+
+## merge cells
+#$excelobj->join_row(2,14);
+$excelobj->set_join_sep('-');
+$excelobj->join_row_block(2,14);
+
+##
 
 #########
 ## alt ##

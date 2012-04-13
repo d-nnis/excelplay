@@ -46,6 +46,7 @@ print "Modul excel_com2.pm importiert.\n";
 		if ($workb_count == 0) {
 			$excel->Workbooks->Add;
 		} elsif ($workb_count == 1) {
+			$excel->Workbooks(1)->Activate;
 			print "select workbook: '", $excel->Workbooks(1)->Name, "'\n";
 		} else {
 			print "$workb_count Workbooks: ";
@@ -63,6 +64,7 @@ print "Modul excel_com2.pm importiert.\n";
 		my $works_count = $excel->Worksheets->Count;
 		print "$works_count Sheets: ";
 		if ($works_count == 1) {
+			$self->{WORKSHEET} = $excel->Worksheets(1);
 			print "select worksheet: '", $excel->Worksheets(1)->Name, "'\n";
 		} else {
 			foreach (1 .. $works_count) {
@@ -184,7 +186,8 @@ print "Modul excel_com2.pm importiert.\n";
 		while (defined($self->{WORKSHEET}->Cells($startrow + $i, $col)->{'Value'} )) {
 			$i++;
 		}
-		return ($i+$startrow, $col);
+		#return ($i+$startrow, $col);
+		return $i+$startrow;
 	}
 	
 	sub last_col {
@@ -217,14 +220,57 @@ print "Modul excel_com2.pm importiert.\n";
 		my @rowarray;
 		my $row = shift;
 		my $col = shift || 1;
+		my @last;
 		# row, column
 		while ( defined($self->{WORKSHEET}->Cells($row, $col)->{'Value'} )) {
 			push(@rowarray, $self->{WORKSHEET}->Cells($row, $col)->{'Value'});
+			$self->{readrow_col} = $col;
+			@last = ($row, $col);
 			$col++;
 		}
+		## letzte Leseposition
+		# geht auch $self->readrow->{last} ?
 		return @rowarray;
-	}	
+	}
 	
+	sub join_row {
+		my $self = shift;
+		my $row = shift;
+		my $col = shift;
+		my $sep = shift || ",";
+		my @rowarray = $self->readrow($row, $col);
+		my $joinedrow;
+		foreach (@rowarray) {
+			next if $_ eq '';
+			if (defined $joinedrow) {
+				$joinedrow = $joinedrow . $sep . $_;
+			} else {
+				$joinedrow = $_;
+			}
+		}
+		$self->{WORKSHEET}->Cells($row, $self->{readrow_col}+1)->{'Value'} = $joinedrow;
+		return $joinedrow;
+	}
+	sub set_join_sep {
+		my $self = shift;
+		$self->{join_sep} = shift;
+	}
+	sub get_join_sep {
+		my $self = shift;
+		return $self->{join_sep};
+	}
+	
+	sub join_row_block {
+		my $self = shift;
+		my $row = shift;
+		my $col = shift;
+		my $last_row = shift || $self->last_row($row, $col);
+		my $sep = $self->{join_sep} || ",";
+		while ($row <= $last_row) {
+			$self->join_row($row, $col);
+			$row++;
+		}
+	}
 	
 
 	# mit Handling für Zahlen
@@ -562,3 +608,4 @@ with($Chart, HasLegend => 0, HasTitle => 1);
     =cut
 
 1;
+
