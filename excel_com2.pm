@@ -79,6 +79,12 @@ print "Modul excel_com2.pm importiert.\n";
 		return $excel;
 	}
 
+	## transpose_level 0: Formelbezug
+	## 1: Wert kopieren
+	sub transpose_level {
+		my $self = shift;
+		$self->{transpose_level} = shift || (return ($self->{transpose_level}));
+	}
 	
 	## Zeile 1 in Spalten
 	## Zeile 2 in Spalten darunter
@@ -95,32 +101,38 @@ print "Modul excel_com2.pm importiert.\n";
 		}
 		# TODO: suche erste freie Zeile zum Beschreiben
 		
+		my @vals_n;
+		my $vals_count = 0;
 		while (my $vals_ref = [ $self->readrow($readrow, $readcol) ] ) {
-			say $readrow.",";
-			my @vals = @{$vals_ref};
-			my $vals_count = scalar @vals;
-			last if ($vals_count == 0);
+			say "row:".$readrow.",";
 			
+			my @vals = @{$vals_ref};
+			$vals_count += scalar @vals;
+			last if ((scalar @vals) == 0);			
 			## neu
-			my @vals_n;
 			#my @vals_n = map {[$_]} @vals;
 			# Ersatz:
 			foreach (@vals) {
 				my $insert;
-				if ($_=~ /^0/) {
-					$insert = "=TEXT($_;\"00000\")";
+				if ($self->{transpose_level}) {
+					# = 1
+					# Values einsetzen/ kopieren
+					if ($_=~ /^0/) {
+						$insert = "=TEXT($_;\"00000\")";
+					} else {
+						$insert = $_;
+					}
 				} else {
-					$insert = $_;
+					# = 0 || undef
+					# Formelbezug setzen
+					# TODO Col übersetzen: 1->A, 2->B
+					my $col_letter = $self->rangetocell_format($readcol);
+					$insert = "=$col_letter$readrow";
 				}
 				push @vals_n, [$insert];
 			}
 			#@vals_n = map {[$_]} @vals;
 			#@vals_n = map {["=TEXT($_;\"00000\")"]} @vals;
-			my $range_start = $self->{WORKSHEET}->Cells($writerow,$writecol);
-			my $range_end = $self->{WORKSHEET}->Cells($writerow+$vals_count-1,$writecol);
-			$writerow = $writerow + $vals_count;
-			$self->{range} = $self->{WORKSHEET}->Range($range_start,$range_end);
-			$self->{range}->{'Value'} = [@vals_n];	# [[1],[2],[3],[4]];	
 			## neu/
 			
 			## TODO: Benchmarking
@@ -135,6 +147,11 @@ print "Modul excel_com2.pm importiert.\n";
 			#}
 			$readrow++;
 		}
+		my $range_start = $self->{WORKSHEET}->Cells($writerow,$writecol);
+		my $range_end = $self->{WORKSHEET}->Cells($writerow+$vals_count-1,$writecol);
+		#$writerow = $writerow + $vals_count;
+		$self->{range} = $self->{WORKSHEET}->Range($range_start,$range_end);
+		$self->{range}->{'Value'} = [@vals_n];	# [[1],[2],[3],[4]];	
 	}
 		
 	sub pos {
@@ -222,6 +239,7 @@ print "Modul excel_com2.pm importiert.\n";
 		my $col = shift || 1;
 		my @last;
 		# row, column
+		# TODO als array einmal einlesbar?
 		while ( defined($self->{WORKSHEET}->Cells($row, $col)->{'Value'} )) {
 			push(@rowarray, $self->{WORKSHEET}->Cells($row, $col)->{'Value'});
 			$self->{readrow_col} = $col;
@@ -285,8 +303,68 @@ print "Modul excel_com2.pm importiert.\n";
 		}
 		$self->{WORKSHEET}->Cells($self->{row},$self->{col})->{'Value'} = $insert;
 		#$self->{WORKSHEET}->Cells($self->{row},$self->{col})->{'Value'} = "=TEXT($val;\"00000\")"; 
-	} 
+	}
 	
+	
+	sub rangetocell_format {
+		my $self = shift;
+		my $input = shift;
+		my %rangetocell_lib = (
+			1=>"A",
+			2=>"B",
+			3=>"C",
+			4=>"D",
+			5=>"E",
+			6=>"F",
+			7=>"G",
+			8=>"H",
+			9=>"I",
+			10=>"J",
+			11=>"K",
+			12=>"L",
+			13=>"M",
+			14=>"N",
+			15=>"O",
+			16=>"P",
+			17=>"Q",
+			18=>"R",
+			19=>"S",
+			20=>"T",
+			21=>"U",
+			22=>"V",
+			23=>"W",
+			24=>"X",
+			25=>"Y",
+			26=>"Z",
+			27=>"AA",
+			28=>"AB",
+			29=>"AC",
+			30=>"AD",
+			31=>"AE",
+			32=>"AF",
+			33=>"AG",
+			34=>"AH",
+			35=>"AI",
+			36=>"AJ",
+			37=>"AK",
+			38=>"AL",
+			39=>"AM",
+			40=>"AN",
+			41=>"AO",
+			42=>"AP",
+			43=>"AQ",
+			44=>"AR",
+			45=>"AS",
+			46=>"AT",
+			47=>"AU",
+			48=>"AV",
+			49=>"AW",
+			50=>"AX",
+			51=>"AY",
+			52=>"AZ");
+		my $output = $rangetocell_lib{$input};
+		return $output;
+	}
 #########
 ## alt ##
 #########

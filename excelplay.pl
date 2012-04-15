@@ -13,6 +13,16 @@ $excelobj->init();
 #$excelobj->Zeilen_in_1Spalte(1,1);	# find last cell funktioniert nicht
 #$excelobj->Zeilen_in_1Spalte(1,1,16,2);
 
+# transpose_level 0: Formelbezug
+# 1: Wert kopieren
+
+$excelobj->transpose_level(0);
+print "transpose_level:",$excelobj->transpose_level,"\n";
+$excelobj->Zeilen_in_1Spalte(2,2,10,1);
+
+print "ende\n";
+__END__
+
 ## merge cells
 #$excelobj->join_row(2,14);
 $excelobj->set_join_sep('-');
