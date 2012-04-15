@@ -42,6 +42,8 @@ print "Modul excel_com2.pm importiert.\n";
 			$excel = Win32::OLE->new('Excel.Application', 'Quit')
                     or die "Cannot start Excel";
         }
+		# Excel-Server
+		$self->{EXCEL} = $excel;
 		my $workb_count = $excel->Workbooks->Count;
 		if ($workb_count == 0) {
 			$excel->Workbooks->Add;
@@ -83,7 +85,7 @@ print "Modul excel_com2.pm importiert.\n";
 	## 1: Wert kopieren
 	sub transpose_level {
 		my $self = shift;
-		$self->{transpose_level} = shift || (return ($self->{transpose_level}));
+		$self->{transpose_level} = shift || return $self->{transpose_level};
 	}
 	
 	## Zeile 1 in Spalten
@@ -101,10 +103,20 @@ print "Modul excel_com2.pm importiert.\n";
 		}
 		# TODO: suche erste freie Zeile zum Beschreiben
 		
+		if ($self->{transpose_level}) {
+			
+		} else {
+			# default: Formelbezug setzen
+			
+		}
+		
+		
 		my @vals_n;
 		my $vals_count = 0;
 		while (my $vals_ref = [ $self->readrow($readrow, $readcol) ] ) {
 			say "row:".$readrow.",";
+			
+			
 			
 			my @vals = @{$vals_ref};
 			$vals_count += scalar @vals;
@@ -126,31 +138,40 @@ print "Modul excel_com2.pm importiert.\n";
 					# = 0 || undef
 					# Formelbezug setzen
 					# TODO Col übersetzen: 1->A, 2->B
-					my $col_letter = $self->rangetocell_format($readcol);
-					$insert = "=$col_letter$readrow";
+					## neu
+					# $cell(2,1)->Range("A2");
+					#my $range_format = $self->{WORKSHEET}->Cells($readrow, $readcol)->Range;
+					#my $range_start = $self->{WORKSHEET}->Cells($writerow,$writecol);
+					#$self->{range} = $self->{WORKSHEET}->Range($range_start,$range_end);
+					
+					my $cells1 = $self->{WORKSHEET}->Cells($readrow, $readcol);
+					#my $range_format = $self->{WORKSHEET}->Range($cells1, $cells1);
+					#my $inputFormula = "=$cells1";
+					#my $form = $self->{EXCEL}->ConvertFormula("formula:=$inputFormula,fromReferenceStyle:=xlR1C1,toReferenceStyle:=xlA1");
+					# TODO range_new als Excel-Range-Objekt!!?
+					# convert: from R1C1-style to A1-style
+					my @range_new = $self->R1toA1($cells1);
+					# =A1
+					$insert = "=$range_new[0]$range_new[1]";
+					#$insert = $self->{WORKSHEET}->ConvertFormular("formula:=$insert,fromReferenceStyle:=xlR1C1,toReferenceStyle:=xlA1");
+					#Cells($cells1)->Formula = "=$range_format";
+					#$insert = "=$range_format";
+					# Range("A1")
+					##
+					#$insert = "=$col_letter$readrow";
 				}
 				push @vals_n, [$insert];
 			}
-			#@vals_n = map {[$_]} @vals;
-			#@vals_n = map {["=TEXT($_;\"00000\")"]} @vals;
-			## neu/
-			
-			## TODO: Benchmarking
-			## nur map?
-			## schneller als mit writeval?
-			
-			
-			#foreach my $val (@vals) {
-			#	$self->pos($writerow, $writecol);
-			#	$self->writeval($val);
-			#	$writerow++;
-			#}
 			$readrow++;
 		}
-		my $range_start = $self->{WORKSHEET}->Cells($writerow,$writecol);
-		my $range_end = $self->{WORKSHEET}->Cells($writerow+$vals_count-1,$writecol);
+		##
+		@vals_n = 0;
+		#my $range = Range("A1:A100");
+		##
+		my $cells_start = $self->{WORKSHEET}->Cells($writerow,$writecol);
+		my $cells_end = $self->{WORKSHEET}->Cells($writerow+$vals_count-1,$writecol);
 		#$writerow = $writerow + $vals_count;
-		$self->{range} = $self->{WORKSHEET}->Range($range_start,$range_end);
+		$self->{range} = $self->{WORKSHEET}->Range($cells_start,$cells_end);
 		$self->{range}->{'Value'} = [@vals_n];	# [[1],[2],[3],[4]];	
 	}
 		
@@ -305,6 +326,26 @@ print "Modul excel_com2.pm importiert.\n";
 		#$self->{WORKSHEET}->Cells($self->{row},$self->{col})->{'Value'} = "=TEXT($val;\"00000\")"; 
 	}
 	
+	
+	# in: Excel->Cells-Objekt
+	# out: Excel->Rangel-Objekt?
+	# oder string
+	#sub rangetocell {
+	sub R1toA1 {
+		my $self = shift;
+		# TODO Unterscheide zwischen input als Cells-Objekt oder Zellen-Tupel (row, col)
+		my $cells_object = shift;
+		my $row = $cells_object->Row;
+		my $col = $cells_object->Column;
+		my $input0 = $self->rangetocell_format($col);
+		return ($input0,$row);
+		
+		
+		# TODO return Range-Objekt
+		#my $range_object = $self->{WORKSHEET}->Range("$input0$row");
+		#return $range_object;
+		
+	}
 	
 	sub rangetocell_format {
 		my $self = shift;
@@ -669,6 +710,18 @@ my $workb_count = $workbook->Count;
 # with
 with($Chart, HasLegend => 0, HasTitle => 1);
 
+
+##
+Range("A1") Zelle A1 
+Range("A1:B5") Zellen A1 bis B5 
+Range("C5:D9;G9:H16") Eine Mehrfachmarkierung eines Bereichs 
+Range("A:A") Spalte A 
+Range("1:1") Zeile 1 
+Range("A:C") Spalten A bis C 
+Range("1:5") Zeilen 1 bis 5 
+Range("1:1;3:3;8:8") Zeilen 1, 3 und 8 
+Range("A:A;C:C;F:F") Spalten A, C und F 
+##
 
 #####
 

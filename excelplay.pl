@@ -16,8 +16,8 @@ $excelobj->init();
 # transpose_level 0: Formelbezug
 # 1: Wert kopieren
 
-$excelobj->transpose_level(0);
-print "transpose_level:",$excelobj->transpose_level,"\n";
+$excelobj->transpose_level(1);
+#print "transpose_level:",$excelobj->transpose_level,"\n";
 $excelobj->Zeilen_in_1Spalte(2,2,10,1);
 
 print "ende\n";
