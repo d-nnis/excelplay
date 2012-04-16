@@ -50,6 +50,7 @@ print "Modul excel_com2.pm importiert.\n";
 		} elsif ($workb_count == 1) {
 			$excel->Workbooks(1)->Activate;
 			print "select workbook: '", $excel->Workbooks(1)->Name, "'\n";
+			$self->{WORKBOOK} = $excel->Workbooks(1);
 		} else {
 			print "$workb_count Workbooks: ";
 			foreach (1..$workb_count) {
@@ -59,6 +60,7 @@ print "Modul excel_com2.pm importiert.\n";
 			my $workb_select = main::confirm_numcount($workb_count);
 			$excel->Workbooks($workb_select)->Activate;
 			print "select workbook: '", $excel->Workbooks($workb_select)->Name, "'\n";
+			$self->{WORKBOOK} = $excel->Workbooks($workb_select);
 		}
 		
 		##
@@ -81,11 +83,34 @@ print "Modul excel_com2.pm importiert.\n";
 		return $excel;
 	}
 
-	## transpose_level 0: Formelbezug
+	## transpose_level 0||undef: Formelbezug
 	## 1: Wert kopieren
 	sub transpose_level {
 		my $self = shift;
 		$self->{transpose_level} = shift || return $self->{transpose_level};
+	}
+	
+	## active_cell undef: keine Relevanz
+	## 'aim': Aktionsziel
+	sub active_cell {
+		my $self = shift;
+		my $keyword = shift;
+		#$self->{WORKSHEET}->Activate;
+		my $cells_object = $self->{WORKSHEET}->ActiveCell;
+		my $row = $cells_object->Row;
+		#$self->{WORKSHEET}->Cells($readrow, $readcol+$i);
+		#my $row = $cells_object->Row;
+		#Cells($row, $col)->{'Value'}
+		my $col = $self->{WORKSHEET}->ActiveCell->Select->Col;
+		if ($keyword eq 'aim') {
+			@{$self->{active_cell}->{aim}} = ($row, $col);
+		} elsif ($keyword eq 'lastlastrow') {
+			# not functionable yet
+			#@{$self->{active_cell}->{lastlastrow}} = $self->lastlast_row();
+		} else {
+			# default
+		}
+		
 	}
 	
 	## Zeile 1 in Spalten
@@ -98,76 +123,53 @@ print "Modul excel_com2.pm importiert.\n";
 		my $writerow = shift;
 		my $writecol = shift;
 		unless (defined $writerow && defined $writecol) {
-			$writerow = $self->lastlast_row($readcol)+1;
-			$writecol = $readcol;
+			my $key = $self->{active_cell};
+			$writerow = ${$self->{active_cell}->{aim}}[0];
+			$writecol = ${$self->{active_cell}->{aim}}[1];
+			#$writerow = $self->lastlast_row($readcol)+1;
+			#$writecol = $readcol;
 		}
 		# TODO: suche erste freie Zeile zum Beschreiben
-		
-		if ($self->{transpose_level}) {
-			
-		} else {
-			# default: Formelbezug setzen
-			
-		}
-		
-		
 		my @vals_n;
 		my $vals_count = 0;
 		while (my $vals_ref = [ $self->readrow($readrow, $readcol) ] ) {
 			say "row:".$readrow.",";
-			
-			
-			
 			my @vals = @{$vals_ref};
 			$vals_count += scalar @vals;
-			last if ((scalar @vals) == 0);			
-			## neu
-			#my @vals_n = map {[$_]} @vals;
-			# Ersatz:
-			foreach (@vals) {
-				my $insert;
-				if ($self->{transpose_level}) {
-					# = 1
-					# Values einsetzen/ kopieren
+			last if ((scalar @vals) == 0);
+			
+			if ($self->{transpose_level}) {
+				# Values einsetzen/ kopieren
+				foreach (@vals) {
+					my $insert;
 					if ($_=~ /^0/) {
 						$insert = "=TEXT($_;\"00000\")";
 					} else {
 						$insert = $_;
 					}
-				} else {
-					# = 0 || undef
-					# Formelbezug setzen
-					# TODO Col übersetzen: 1->A, 2->B
-					## neu
-					# $cell(2,1)->Range("A2");
-					#my $range_format = $self->{WORKSHEET}->Cells($readrow, $readcol)->Range;
-					#my $range_start = $self->{WORKSHEET}->Cells($writerow,$writecol);
-					#$self->{range} = $self->{WORKSHEET}->Range($range_start,$range_end);
-					
-					my $cells1 = $self->{WORKSHEET}->Cells($readrow, $readcol);
-					#my $range_format = $self->{WORKSHEET}->Range($cells1, $cells1);
-					#my $inputFormula = "=$cells1";
-					#my $form = $self->{EXCEL}->ConvertFormula("formula:=$inputFormula,fromReferenceStyle:=xlR1C1,toReferenceStyle:=xlA1");
-					# TODO range_new als Excel-Range-Objekt!!?
-					# convert: from R1C1-style to A1-style
-					my @range_new = $self->R1toA1($cells1);
-					# =A1
-					$insert = "=$range_new[0]$range_new[1]";
-					#$insert = $self->{WORKSHEET}->ConvertFormular("formula:=$insert,fromReferenceStyle:=xlR1C1,toReferenceStyle:=xlA1");
-					#Cells($cells1)->Formula = "=$range_format";
-					#$insert = "=$range_format";
-					# Range("A1")
-					##
-					#$insert = "=$col_letter$readrow";
+					push @vals_n, [$insert];
 				}
-				push @vals_n, [$insert];
+				$readrow++;
+			} else {
+				# Formelbezug setzen
+				# Formeln ableiten
+				for (my $i = 0; $i < $vals_count; $i++) {
+					my $sourcecell = $self->{WORKSHEET}->Cells($readrow, $readcol+$i);
+					my @sourcecell_new = $self->R1toA1($sourcecell);
+					# =A1
+					my $cell_A1 = "=$sourcecell_new[0]$sourcecell_new[1]";
+					push @vals_n, [$cell_A1];
+					
+					## TODO range_new als Excel-Range-Objekt!!?
+					## convert: from R1C1-style to A1-style
+					#my @range_new = $self->R1toA1($cells1);
+					## =A1
+					#$insert = "=$range_new[0]$range_new[1]";
+					##
+				}
 			}
-			$readrow++;
 		}
-		##
-		@vals_n = 0;
-		#my $range = Range("A1:A100");
-		##
+		
 		my $cells_start = $self->{WORKSHEET}->Cells($writerow,$writecol);
 		my $cells_end = $self->{WORKSHEET}->Cells($writerow+$vals_count-1,$writecol);
 		#$writerow = $writerow + $vals_count;
@@ -337,8 +339,8 @@ print "Modul excel_com2.pm importiert.\n";
 		my $cells_object = shift;
 		my $row = $cells_object->Row;
 		my $col = $cells_object->Column;
-		my $input0 = $self->rangetocell_format($col);
-		return ($input0,$row);
+		my $col_str = $self->rangetocell_format($col);
+		return ($col_str,$row);
 		
 		
 		# TODO return Range-Objekt
@@ -723,6 +725,7 @@ Range("1:1;3:3;8:8") Zeilen 1, 3 und 8
 Range("A:A;C:C;F:F") Spalten A, C und F 
 ##
 
+## my $form = $self->{EXCEL}->ConvertFormula("formula:=$inputFormula,fromReferenceStyle:=xlR1C1,toReferenceStyle:=xlA1");
 #####
 
     # program continues
