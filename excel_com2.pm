@@ -44,6 +44,26 @@ print "Modul excel_com2.pm importiert.\n";
         }
 		# Excel-Server
 		$self->{EXCEL} = $excel;
+		
+		# suche window aus?
+		#my $window_count = $excel->Windows->Count;
+		#if ($window_count == 0) {
+		#	#$excel->Windows->Add;
+		#	$excel->Windows(1)->Open;
+		#	
+		#} else {
+		#	print "$window_count Windows: ";
+		#	foreach (1..$window_count) {
+		#		print "$_:".$excel->Windows($_)->Parent->Name.",";
+		#		# oder: $ex->ActiveWindow->Caption;
+		#	}
+		#	print "\n";
+		#	my $parent = $excel->Windows(1)->Parent->Name;
+		#	my $active2 = $excel->ActiveWorkbook;
+		#	print "";
+		#}
+		# suche workbook aus
+		
 		my $workb_count = $excel->Workbooks->Count;
 		if ($workb_count == 0) {
 			$excel->Workbooks->Add;
@@ -131,11 +151,12 @@ print "Modul excel_com2.pm importiert.\n";
 		}
 		# TODO: suche erste freie Zeile zum Beschreiben
 		my @vals_n;
-		my $vals_count = 0;
+		#my $vals_count = 0;
 		while (my $vals_ref = [ $self->readrow($readrow, $readcol) ] ) {
 			say "row:".$readrow.",";
 			my @vals = @{$vals_ref};
-			$vals_count += scalar @vals;
+			#my $vals_count = scalar @vals;
+			#$vals_count += scalar @vals;
 			last if ((scalar @vals) == 0);
 			
 			if ($self->{transpose_level}) {
@@ -153,7 +174,7 @@ print "Modul excel_com2.pm importiert.\n";
 			} else {
 				# Formelbezug setzen
 				# Formeln ableiten
-				for (my $i = 0; $i < $vals_count; $i++) {
+				for (my $i = 0; $i < scalar @vals; $i++) {
 					my $sourcecell = $self->{WORKSHEET}->Cells($readrow, $readcol+$i);
 					my @sourcecell_new = $self->R1toA1($sourcecell);
 					# =A1
@@ -167,16 +188,20 @@ print "Modul excel_com2.pm importiert.\n";
 					#$insert = "=$range_new[0]$range_new[1]";
 					##
 				}
+				$readrow++;
 			}
 		}
 		
 		my $cells_start = $self->{WORKSHEET}->Cells($writerow,$writecol);
-		my $cells_end = $self->{WORKSHEET}->Cells($writerow+$vals_count-1,$writecol);
+		
+		#my $cells_end = $self->{WORKSHEET}->Cells($writerow+$vals_count-1,$writecol);
+		my $cells_end = $self->{WORKSHEET}->Cells($writerow+(scalar @vals_n)-1,$writecol);
 		#$writerow = $writerow + $vals_count;
+		# TODO range = start, start+scalar @vals_n
 		$self->{range} = $self->{WORKSHEET}->Range($cells_start,$cells_end);
 		$self->{range}->{'Value'} = [@vals_n];	# [[1],[2],[3],[4]];	
 	}
-		
+	
 	sub pos {
 		my $self = shift;
 		$self->{row} = shift;
@@ -262,7 +287,7 @@ print "Modul excel_com2.pm importiert.\n";
 		my $col = shift || 1;
 		my @last;
 		# row, column
-		# TODO als array einmal einlesbar?
+		# TODO row als array einmal einlesen !?
 		while ( defined($self->{WORKSHEET}->Cells($row, $col)->{'Value'} )) {
 			push(@rowarray, $self->{WORKSHEET}->Cells($row, $col)->{'Value'});
 			$self->{readrow_col} = $col;
@@ -295,6 +320,7 @@ print "Modul excel_com2.pm importiert.\n";
 	sub set_join_sep {
 		my $self = shift;
 		$self->{join_sep} = shift;
+		#neu: $self->{join_sep} = shift || return $self->{join_sep};
 	}
 	sub get_join_sep {
 		my $self = shift;
@@ -537,7 +563,6 @@ print "Modul excel_com2.pm importiert.\n";
 			my $Class = Win32::OLE->QueryObjectType($Object);
 			printf "# Object=%s Class=%s\n", $Object, $Class;
 		});
-
 		print $Count;
 		##
 		my $Excel = Win32::OLE->GetActiveObject('Excel.Application')

@@ -17,7 +17,7 @@ $excelobj->init();
 # 1: Wert kopieren
 
 #$excelobj->active_cell('aim');
-#$excelobj->transpose_level(1);
+$excelobj->transpose_level(1);
 #print "transpose_level:",$excelobj->transpose_level,"\n";
 #$excelobj->Zeilen_in_1Spalte(2,2,10,1);
 $excelobj->Zeilen_in_1Spalte(2,2,10,1);
