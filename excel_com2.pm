@@ -17,11 +17,14 @@ print "Modul excel_com2.pm importiert.\n";
 {
 	package Excelobject;
 	
+	my $Range;
+	
 	sub new {
 		my $class = shift;
 		my $self = {};
 		#$self -> {EXCELFILE} = $_[0];
 		bless($self, $class);
+		$Range = Range->new();
 		return $self;
 	}
 	
@@ -203,10 +206,19 @@ print "Modul excel_com2.pm importiert.\n";
 		# neues Package
 		# ISA?
 		# ohne blessing?
-		$self->write_range->{RANGE_START} = $self->{WORKSHEET}->Cells($writerow, $writecol);
+		my $Range = Range->new();
+		$Range->{RANGE_START} = $self->{WORKSHEET}->Cells($writerow, $writecol);
+		#$self->write_range->{RANGE_START} = $self->{WORKSHEET}->Cells($writerow, $writecol);
 		# und auch möglich mit tupel:
 		#$self->write_range->{RANGE_START} = ($writerow, $writecol);
-		$self->write_range([@vals_n]);
+		# TODO Exceobject-Variablen nicht durch Vererbung in Range verfügbar?
+		$Range->{WORKSHEET} = $self->{WORKSHEET};
+		$Range->write_range(@vals_n);	# [[1],[2],[3],[4]];
+	}
+	
+	sub get_WORKSHEET {
+		my $self = shift;
+		return $self->{WORKSHEET};
 	}
 	
 	sub pos {
@@ -303,51 +315,51 @@ print "Modul excel_com2.pm importiert.\n";
 		## my $regex_in = $self->{WORKSHEET}->Cells(~pos)->{'Value'};
 		## my $regex = join('', '(.*\.', $regex_in, '$)');
 		my @regex_result;
-		my $regex = '(\d)(\d)';
-		
+		my $regexp = $self->{regexp};
 		foreach my $value (@values) {
-			my @regex_value = $value =~ /$regex/;
+			my @regex_value = $value =~ /$regexp/;
 			push @regex_result, [@regex_value];
 		}
-		return @regex_result;
+		return @regex_result;	# [[0,2],[0,4],[]]
+	}
+	
+	sub regex_col {
+		my $self = shift;
+		my $row = shift;
+		my $col = shift;
+		given ($self->{regexp}) {
+			when (!defined) {warn "Kein Regular Expression definiert!\n"}
+			when ('activecell') { $self->{regexp} = $self->read_activecell()}
+			default {}
+		}
+		#warn "Kein Regular Expression definiert!\n" unless defined $self->{regexp};
+		my @array = $self->readcol($col, $row);
+		my @regex_result = $self->regex_array(@array);
+		$Range->{WORKSHEET} = $self->{WORKSHEET};
+		$Range->{RANGE_START} = $Range->{WORKSHEET}->Cells($row, $col+1);
+		$Range->write_range(@regex_result);
+		return $Range->{RANGE};
+	}
+	
+	sub read_activecell {
+		my $self = shift;
+		my $val;
+		my $cell = $self->{EXCEL}->ActiveCell;
+		$val = $self->{EXCEL}->ActiveCell->{'Value'};
+		
+		#$self->{WORKSHEET}->Select;
+		#my $val = $self->{WORKSHEET}->ActiveCell->{'Value'};
+		#$self->{ACTIVE_CELL_POS} = 
+		return $val;
+		#$self->{WORKSHEET}
+	}
+	
+	sub write_range {
+		my $self = shift;
+		my @arr = @_;
+		$Range->write_range(@_);
 	}
 
-	# $self->write_range->{RANGE_START}
-	sub write_range {
-		##
-		#Excelobject
-		#my $self = shift;
-		#my $new_self = {};
-		#bless($new_self, $self);
-		#return $new_self
-		#
-		# my $excelobj = Excelobject->new();
-		#my $class = shift;
-		#my $self = {};
-		##$self -> {EXCELFILE} = $_[0];
-		#bless($self, $class);
-		#return $self;
-		##
-		
-		my $self = shift;
-		my @arrofarr = @_;
-		my $depth_arr = 0;
-		my $range_start;
-		
-		
-		# wie tief ist @arrofarr?
-		# TODO mit map:
-		foreach (@arrofarr) {
-			$depth_arr = scalar @{$_} if ( scalar @{$_} > $depth_arr );
-		}
-		
-		if ( $self->{regex} eq 'addcell' ) {
-			# default
-			# add row $or column at $position
-		} else {
-			#$self->range
-		}
-	}
 	sub readrow {
 		my $self = shift;
 		my @rowarray;
@@ -406,7 +418,6 @@ print "Modul excel_com2.pm importiert.\n";
 			$row++;
 		}
 	}
-	
 
 	# mit Handling für Zahlen
 	sub writeval {
@@ -642,46 +653,51 @@ print "Modul excel_com2.pm importiert.\n";
 	}
 }
 {
-	package RANGE;
+	package Range;
+	# nötig?
+	# ja, damit auch die Excelobjekte gehandhabt werden können (Cells, Range etc.)
+	@Range::ISA = qw(Excelobject);
+	
+	sub new {
+		my $class = shift;
+		my $self = {};
+		bless($self, $class);
+		return $self;
+	}
 	
 	sub range {
-		my $range = shift;
+		my $self = shift;
+		$self->{RANGE} = shift || return $self->{RANGE};
 	}
 
 	# $self->write_range->{RANGE_START}
-	sub write_range {
-		##
-		#Excelobject
-		#my $self = shift;
-		#my $new_self = {};
-		#bless($new_self, $self);
-		#return $new_self
-		#
-		# my $excelobj = Excelobject->new();
-		#my $class = shift;
-		#my $self = {};
-		##$self -> {EXCELFILE} = $_[0];
-		#bless($self, $class);
-		#return $self;
-		##
-		
+	sub write_range {		
 		my $self = shift;
 		my @arrofarr = @_;
 		my $depth_arr = 0;
-		my $range_start;
-		
-		
 		# wie tief ist @arrofarr?
 		# TODO mit map:
-		foreach (@arrofarr) {
-			$depth_arr = scalar @{$_} if ( scalar @{$_} > $depth_arr );
+		foreach my $arr (@arrofarr) {
+			my @arr_de = @$arr;
+			$depth_arr = scalar @arr_de if ( (scalar @arr_de) > $depth_arr );
 		}
+		# Range berechnen: RANGE_START + Dimensionen von @arrofarr
+		my $range_end_row = $self->{RANGE_START}->Row + scalar @arrofarr-1;
+		my $range_end_col = $self->{RANGE_START}->Column + $depth_arr - 1;
+		my $range_end = $self->{WORKSHEET}->Cells($range_end_row, $range_end_col);
+		#my $range = $self->{WORKSHEET}->Range($self->{RANGE_START},$range_end);
+		# oder public?
+		$self->{RANGE} = $self->{WORKSHEET}->Range($self->{RANGE_START},$range_end);
 		
-		if ( $self->{regex} eq 'addcell' ) {
+		# $self->{regex} erreichbar?
+		#if ( $self->{regex} eq 'addcell' ) {
+		if ( 0 ) {	
 			# default
 			# add row $or column at $position
 		} else {
-			#$self->range
+			# Werte einsetzen
+			$self->{RANGE}->{'Value'} = [@arrofarr];
+			# [[1a,1b,1c,1d],[2a,2b,2c,2d],[3a,3b,3c]];
 		}
 	}
 }
