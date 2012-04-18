@@ -19,8 +19,14 @@ $excelobj->init();
 #$excelobj->active_cell('aim');
 $excelobj->transpose_level(1);
 #print "transpose_level:",$excelobj->transpose_level,"\n";
-#$excelobj->Zeilen_in_1Spalte(2,2,10,1);
 $excelobj->Zeilen_in_1Spalte(2,2,10,1);
+# TODO
+$excelobj->regex('addcell');
+my @col = $excelobj->readcol(5,6);
+my @regex = $excelobj->regex_array(@col);
+$excelobj->write_range(@regex);
+
+#$excelobj->Zeilen_in_1Spalte(2,2,10,1);
 
 print "ende\n";
 __END__

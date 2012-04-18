@@ -174,6 +174,9 @@ print "Modul excel_com2.pm importiert.\n";
 			} else {
 				# Formelbezug setzen
 				# Formeln ableiten
+				
+				# funzt auch?
+				# for (@vals) {
 				for (my $i = 0; $i < scalar @vals; $i++) {
 					my $sourcecell = $self->{WORKSHEET}->Cells($readrow, $readcol+$i);
 					my @sourcecell_new = $self->R1toA1($sourcecell);
@@ -185,21 +188,25 @@ print "Modul excel_com2.pm importiert.\n";
 					## convert: from R1C1-style to A1-style
 					#my @range_new = $self->R1toA1($cells1);
 					## =A1
-					#$insert = "=$range_new[0]$range_new[1]";
-					##
 				}
 				$readrow++;
 			}
 		}
 		
-		my $cells_start = $self->{WORKSHEET}->Cells($writerow,$writecol);
+		#my $cells_start = $self->{WORKSHEET}->Cells($writerow,$writecol);
+		#my $cells_end = $self->{WORKSHEET}->Cells($writerow+(scalar @vals_n)-1,$writecol);
+		#$self->{range} = $self->{WORKSHEET}->Range($cells_start,$cells_end);
+		#$self->{range}->{'Value'} = [@vals_n];	# [[1],[2],[3],[4]];
 		
-		#my $cells_end = $self->{WORKSHEET}->Cells($writerow+$vals_count-1,$writecol);
-		my $cells_end = $self->{WORKSHEET}->Cells($writerow+(scalar @vals_n)-1,$writecol);
-		#$writerow = $writerow + $vals_count;
-		# TODO range = start, start+scalar @vals_n
-		$self->{range} = $self->{WORKSHEET}->Range($cells_start,$cells_end);
-		$self->{range}->{'Value'} = [@vals_n];	# [[1],[2],[3],[4]];	
+		# TODOTODO
+		# Idee: Werte nur für Methode zugreifbar
+		# neues Package
+		# ISA?
+		# ohne blessing?
+		$self->write_range->{RANGE_START} = $self->{WORKSHEET}->Cells($writerow, $writecol);
+		# und auch möglich mit tupel:
+		#$self->write_range->{RANGE_START} = ($writerow, $writecol);
+		$self->write_range([@vals_n]);
 	}
 	
 	sub pos {
@@ -279,7 +286,68 @@ print "Modul excel_com2.pm importiert.\n";
 		}
 		return @colarray;
 	}
+	
+	# undef: default
+	# 'addcell': neue Zeile einfügen, in Form von column oder row
+	sub regex {
+		my $self = shift;
+		$self->{regex} = shift || return $self->{regex};
+	}
+	
+	## in: array (row or column)
+	## out: array of array of regex result ('04' -> ('0','4'))
+	sub regex_array {
+		my $self = shift;
+		my @values = @_;
+		## TODO
+		## my $regex_in = $self->{WORKSHEET}->Cells(~pos)->{'Value'};
+		## my $regex = join('', '(.*\.', $regex_in, '$)');
+		my @regex_result;
+		my $regex = '(\d)(\d)';
+		
+		foreach my $value (@values) {
+			my @regex_value = $value =~ /$regex/;
+			push @regex_result, [@regex_value];
+		}
+		return @regex_result;
+	}
 
+	# $self->write_range->{RANGE_START}
+	sub write_range {
+		##
+		#Excelobject
+		#my $self = shift;
+		#my $new_self = {};
+		#bless($new_self, $self);
+		#return $new_self
+		#
+		# my $excelobj = Excelobject->new();
+		#my $class = shift;
+		#my $self = {};
+		##$self -> {EXCELFILE} = $_[0];
+		#bless($self, $class);
+		#return $self;
+		##
+		
+		my $self = shift;
+		my @arrofarr = @_;
+		my $depth_arr = 0;
+		my $range_start;
+		
+		
+		# wie tief ist @arrofarr?
+		# TODO mit map:
+		foreach (@arrofarr) {
+			$depth_arr = scalar @{$_} if ( scalar @{$_} > $depth_arr );
+		}
+		
+		if ( $self->{regex} eq 'addcell' ) {
+			# default
+			# add row $or column at $position
+		} else {
+			#$self->range
+		}
+	}
 	sub readrow {
 		my $self = shift;
 		my @rowarray;
@@ -571,6 +639,50 @@ print "Modul excel_com2.pm importiert.\n";
 		my $Book = $Excel->Workbooks->Open($file);
 		#$self->{WORKSHEET} = $Book->Worksheets($self->{WORKSHEETNR});
 		$self->{WORKSHEET} = $Book->Worksheets($sheet);	
+	}
+}
+{
+	package RANGE;
+	
+	sub range {
+		my $range = shift;
+	}
+
+	# $self->write_range->{RANGE_START}
+	sub write_range {
+		##
+		#Excelobject
+		#my $self = shift;
+		#my $new_self = {};
+		#bless($new_self, $self);
+		#return $new_self
+		#
+		# my $excelobj = Excelobject->new();
+		#my $class = shift;
+		#my $self = {};
+		##$self -> {EXCELFILE} = $_[0];
+		#bless($self, $class);
+		#return $self;
+		##
+		
+		my $self = shift;
+		my @arrofarr = @_;
+		my $depth_arr = 0;
+		my $range_start;
+		
+		
+		# wie tief ist @arrofarr?
+		# TODO mit map:
+		foreach (@arrofarr) {
+			$depth_arr = scalar @{$_} if ( scalar @{$_} > $depth_arr );
+		}
+		
+		if ( $self->{regex} eq 'addcell' ) {
+			# default
+			# add row $or column at $position
+		} else {
+			#$self->range
+		}
 	}
 }
 
