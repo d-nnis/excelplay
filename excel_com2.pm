@@ -48,11 +48,12 @@ print "Modul excel_com2.pm importiert.\n";
 		# Excel-Server
 		$self->{EXCEL} = $excel;
 		
-		# suche window aus?
+		## suche window aus?
 		#my $window_count = $excel->Windows->Count;
 		#if ($window_count == 0) {
 		#	#$excel->Windows->Add;
 		#	$excel->Windows(1)->Open;
+		#	#$excel->{Visible} = 1;
 		#	
 		#} else {
 		#	print "$window_count Windows: ";
@@ -65,7 +66,7 @@ print "Modul excel_com2.pm importiert.\n";
 		#	my $active2 = $excel->ActiveWorkbook;
 		#	print "";
 		#}
-		# suche workbook aus
+		## suche workbook aus
 		
 		my $workb_count = $excel->Workbooks->Count;
 		if ($workb_count == 0) {
