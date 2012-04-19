@@ -4,7 +4,8 @@ use excel_com2;
 use feature qw/say/;
 
 # get active OLE automation objects: program or class id
-
+# master-change
+print "master-HEAD\n";
 #tee
 #my $excelfile = "f:\\poly\\HU-tp4\\2012-03-15 Vereinsliste aktive.xlsx";
 my $excelobj = Excelobject->new();
