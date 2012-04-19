@@ -10,7 +10,6 @@ use feature qw/say/;
 my $excelobj = Excelobject->new();
 #$excelobj->init($excelfile,4);
 $excelobj->init();
-#$excelobj->Zeilen_in_1Spalte(1,1);	# find last cell funktioniert nicht
 #$excelobj->Zeilen_in_1Spalte(2,2,10,2);
 
 # transpose_level 0: Formelbezug
@@ -25,7 +24,7 @@ $excelobj->regex('addcell');
 #$excelobj->{regexp} = '(\d)(\d)';
 $excelobj->{regexp} = 'activecell';
 
-my $range = $excelobj->regex_col(9,5);
+my $range = $excelobj->regex_col(4,11);
 
 
 print "ende\n";

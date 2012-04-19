@@ -330,7 +330,9 @@ print "Modul excel_com2.pm importiert.\n";
 		my $col = shift;
 		given ($self->{regexp}) {
 			when (!defined) {warn "Kein Regular Expression definiert!\n"}
-			when ('activecell') { $self->{regexp} = $self->read_activecell()}
+			when ('activecell') { $self->{regexp} = $self->read_activecell()
+				# Anführungszeichen entfernen?
+				}
 			default {}
 		}
 		#warn "Kein Regular Expression definiert!\n" unless defined $self->{regexp};
