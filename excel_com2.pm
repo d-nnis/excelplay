@@ -16,6 +16,7 @@ print "Modul excel_com2.pm importiert.\n";
 
 {
 	package Excelobject;
+	#@Excelobject::ISA = qw(Range);
 	
 	my $Range;
 	
@@ -305,6 +306,16 @@ print "Modul excel_com2.pm importiert.\n";
 	sub regex {
 		my $self = shift;
 		$self->{regex} = shift || return $self->{regex};
+
+	}
+	
+	# getter und setter für regular expression
+	sub regexp {
+		my $self = shift;
+		$self->{regexp} = shift || return $self->{regexp};
+		# brackets ('/') entfernen
+		$self->{regexp} =~ s/^\/(.*)\/$/$1/;
+		print "";
 	}
 	
 	## in: array (row or column)
@@ -324,37 +335,88 @@ print "Modul excel_com2.pm importiert.\n";
 		return @regex_result;	# [[0,2],[0,4],[]]
 	}
 	
+	## in: Attribute für regex_col
+	## ...
+	## out#
+	sub regex_col_attr {
+		my $self = shift;
+		my @arr = @_;
+		my $key;
+		my $val;
+		if (scalar @arr > 1) {	# set attr
+			while (@arr) {
+				$key = shift @arr;
+				$val = shift @arr;
+				$self->{regex_col_attr}{$key} = $val;
+			}
+		} elsif (scalar @arr == 1) {	# get attr of key
+			$key = shift @arr;
+			return $self->{regex_col_attr}{$key};
+		} else {	# get all attr as hash
+			return %{$self->{regex_col_attr}};
+		}
+	}
+	
+	## regex_col
+	## default:
+	##  activecell = regexp
+	##  $row+1-> readcol
+	##  Column->Add
+	##  $col+1->write_range
+	## in:
 	sub regex_col {
 		my $self = shift;
 		my $row = shift;
 		my $col = shift;
-		given ($self->{regexp}) {
-			when (!defined) {warn "Kein Regular Expression definiert!\n"}
-			when ('activecell') { $self->{regexp} = $self->read_activecell()
-				# Anführungszeichen entfernen?
-				}
-			default {}
+		
+		given ($self->regexp) {
+			when ('activecell') { $self->regexp($self->read_activecell()) }
+			default {$self->regexp($self->read_activecell())}
 		}
-		#warn "Kein Regular Expression definiert!\n" unless defined $self->{regexp};
+		warn "Kein Regular Expression definiert!\n" unless defined $self->{regexp};
+		if (!defined $row && !defined $col) {
+			($row, $col) = @{$self->{activecell}{pos}};
+			$row++;
+		}
+		
 		my @array = $self->readcol($col, $row);
 		my @regex_result = $self->regex_array(@array);
+		my $range_attr = $Range->range_attr();
+		if (scalar (keys %$range_attr) == 0) {	# keine settings -> default settings
+			my $cells_start = $self->{WORKSHEET}->Cells($row, ++$col);
+			$Range->range_attr($cells_start);
+			print "";
+		}
+		# add col
+		# ActiveCell.EntireColumn.Insert
+		# Workbooks("yourworkbook").worksheets("theworksheet").Columns(x).Insert
+		#$self->{WORKSHEET}->ActiveCell->EntireColumn->Insert;
+		$self->{WORKBOOK}->Worksheets(1)->Columns($col)->Insert;
 		$Range->{WORKSHEET} = $self->{WORKSHEET};
-		$Range->{RANGE_START} = $Range->{WORKSHEET}->Cells($row, $col+1);
+		$Range->{RANGE_START} = $Range->{WORKSHEET}->Cells($row, $col);
 		$Range->write_range(@regex_result);
 		return $Range->{RANGE};
 	}
 	
 	sub read_activecell {
 		my $self = shift;
-		my $val;
-		my $cell = $self->{EXCEL}->ActiveCell;
-		$val = $self->{EXCEL}->ActiveCell->{'Value'};
-		
-		#$self->{WORKSHEET}->Select;
-		#my $val = $self->{WORKSHEET}->ActiveCell->{'Value'};
-		#$self->{ACTIVE_CELL_POS} = 
-		return $val;
-		#$self->{WORKSHEET}
+		$self->activecell();
+		return $self->{activecell}{value};
+	}
+	
+	## in: value-> set value
+	##  undef: get value und pos
+	sub activecell {
+		my $self = shift;
+		my $val = shift;
+		if (defined $val) {
+			$self->{EXCEL}->ActiveCell->{'Value'} = $val;
+		} else {
+			my $row = $self->{EXCEL}->ActiveCell->Row;
+			my $col = $self->{EXCEL}->ActiveCell->Column;
+			@{$self->{activecell}{pos}} = ($row, $col);
+			$self->{activecell}{value} = $self->{EXCEL}->ActiveCell->{'Value'};
+		}
 	}
 	
 	sub write_range {
@@ -672,9 +734,33 @@ print "Modul excel_com2.pm importiert.\n";
 		my $self = shift;
 		$self->{RANGE} = shift || return $self->{RANGE};
 	}
+	
+		#	%{$self->{attr}} = (
+		#	PrintError => 1,
+		#	RaiseError => 0
+		#);
+	
+	sub range_attr {
+		my $self = shift;
+		$self->{RANGE_START} = shift || return $self->{RANGE_START};
+		#my $attr = shift;
+		#my $val = shift;
+		#if (defined $val) {	# set attr
+		#	$self->{attr}{$attr} = $val
+		#} elsif (defined $attr) {	# get val of $attr
+		#	return $self->{attr}{$attr};
+		#} else {	# get all attr
+		#	#${$self->{attr}}{hey} = "ho";
+		#	if ($self->{attr}) {
+		#		return $self->{attr};
+		#	} else {
+		#		return undef;
+		#	}
+		#}
+	}
 
 	# $self->write_range->{RANGE_START}
-	sub write_range {		
+	sub write_range {
 		my $self = shift;
 		my @arrofarr = @_;
 		my $depth_arr = 0;
