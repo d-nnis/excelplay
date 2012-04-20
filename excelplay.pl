@@ -4,12 +4,8 @@ use excel_com2;
 use feature qw/say/;
 
 # get active OLE automation objects: program or class id
-<<<<<<< HEAD
 print "regexcell-HEAD\n";
-=======
-# master-change
-print "master-HEAD\n";
->>>>>>> 3df8ae4137c131839d0bd71cf83527fe3ca7600f
+
 #tee
 #my $excelfile = "f:\\poly\\HU-tp4\\2012-03-15 Vereinsliste aktive.xlsx";
 my $excelobj = Excelobject->new();
