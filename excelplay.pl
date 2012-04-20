@@ -5,7 +5,7 @@ use feature qw/say/;
 
 # get active OLE automation objects: program or class id
 print "regexcell-HEAD\n";
-
+# tee
 #tee
 #my $excelfile = "f:\\poly\\HU-tp4\\2012-03-15 Vereinsliste aktive.xlsx";
 my $excelobj = Excelobject->new();
