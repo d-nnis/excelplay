@@ -1,43 +1,46 @@
 use strict;
 use warnings;
-use excel_com2;
+use excel_com;
 use feature qw/say/;
 
-# get active OLE automation objects: program or class id
-print "regexcell-HEAD\n";
-# tee
-#tee
 #my $excelfile = "f:\\poly\\HU-tp4\\2012-03-15 Vereinsliste aktive.xlsx";
 my $excelobj = Excelobject->new();
-#$excelobj->init($excelfile,4);
 $excelobj->init();
+
+#$excelobj->init($excelfile,4);
+
 #$excelobj->Zeilen_in_1Spalte(2,2,10,2);
 
 # transpose_level 0: Formelbezug
 # 1: Wert kopieren
 
 #$excelobj->active_cell('aim');
-$excelobj->transpose_level(1);
+
 #print "transpose_level:",$excelobj->transpose_level,"\n";
 #$excelobj->Zeilen_in_1Spalte(2,2,10,1);
 # TODO
 # regex, und regexp -handling vereinheitlichn
-$excelobj->regex('addcell');
+
 #$excelobj->regex(paste_resultaddcell);
 #$excelobj->{regexp} = '(\d)(\d)';
-$excelobj->{regexp} = 'activecell';
+
 
 ## regex_col
 ## wo lesen, regexp, neue Zellen?, wo schreiben
 # regex_col-default
 #$excelobj->regex_col{attr} = (tee=>"high");
 # )
-my %attr = (addcell=>0, readloc=>[4,11]);
-my $attr = {addcell=>0};
+#my %attr = (addcell=>0, readloc=>[4,11]);
+#my $attr = {addcell=>0};
 #$excelobj->regex_col(\%attr);
 #$excelobj->regex_col_attr(\%attr);
 # super haesslich
 #$excelobj->regex_col_attr("addcell",1, "readloc",[4,11]);
+
+#$excelobj->{regexp} = 'activecell';
+#$excelobj->regex('addcell');
+#$excelobj->transpose_level(1);
+
 my $range = $excelobj->regex_col();
 
 
