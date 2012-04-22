@@ -15,7 +15,7 @@ $Win32::OLE::Warn = 3;
 # running under -w, the Win32::OLE module invokes Carp::carp(). If $Win32::OLE::Warn
 # is set to 3, Carp::croak() is invoked and the program dies immediately.
 
-print "Modul excel_com2.pm importiert.\n";
+print "Modul excel_com.pm importiert.\n";
 
 {
 	package Excelobject;
@@ -111,11 +111,65 @@ print "Modul excel_com2.pm importiert.\n";
 		return $excel;
 	}
 
+	### getter & setter
+	
+	## set || get join-separator
+	sub join_sep {
+		my $self = shift;
+		$self->{join_sep} = shift || return $self->{join_sep};
+	}
+	
+	## in: value-> set value
+	## undef: get value
+	sub activecell_val {
+		my $self = shift;
+		my $val = shift;
+		if (defined $val) {
+			$self->{EXCEL}->ActiveCell->{'Value'} = $val;
+		} else {
+			$self->{activecell}{value} = $self->{EXCEL}->ActiveCell->{'Value'};
+		}
+	}
+	
+	# set || get activell-position
+	# TODO auch mit cells-object nutzbar
+	sub activecell_pos {
+		my $self = shift;
+		my ($row, $col) = @_;
+		if ( defined $row && defined $col) {
+			$self->{EXCEL}->Cells($row, $col)->Select;
+			@{$self->{activecell}{pos}} = ($self->{EXCEL}->ActiveCell->Row, $self->{EXCEL}->ActiveCell->Column);
+		} else {
+			@{$self->{activecell}{pos}} = ($self->{EXCEL}->ActiveCell->Row, $self->{EXCEL}->ActiveCell->Column);
+		}
+	}
+	
 	## transpose_level 0||undef: Formelbezug
-	## 1: Wert kopieren
+	## 1: Wert kopieren	
 	sub transpose_level {
 		my $self = shift;
 		$self->{transpose_level} = shift || return $self->{transpose_level};
+	}
+	
+	## set position(row, col)
+	sub pos {
+		my $self = shift;
+		$self->{row} = shift;
+		$self->{col} = shift;
+	}
+	
+	## getter und setter für regular expression
+	sub regex {
+		my $self = shift;
+		$self->{regex} = shift || return $self->{regex};
+		my @regex = $self->{regex} =~ /(^\/)(.*)(\/$)/;
+		if ( scalar @regex == 3) {
+			$self->{regex} = $2;
+		} else {
+			warn "regular expression muss mit Slash ('/') beginnen und enden!\n";
+			warn "->$self->{regex}<-\n";
+		}
+		#$self->{regex} =~ s/^\/(.*)\/$/$1/;
 	}
 	
 	## active_cell undef: keine Relevanz
@@ -221,22 +275,6 @@ print "Modul excel_com2.pm importiert.\n";
 		$Range->write_range(@vals_n);	# [[1],[2],[3],[4]];
 	}
 	
-	sub get_WORKSHEET {
-		my $self = shift;
-		return $self->{WORKSHEET};
-	}
-	
-	sub pos {
-		my $self = shift;
-		$self->{row} = shift;
-		$self->{col} = shift;
-	}
-	
-	sub writecol {
-		my $self = shift;
-		# als Range rein packen??
-	}
-	
 	sub Spalten_in_1Zeile {
 		my $self = shift;
 		
@@ -266,17 +304,18 @@ print "Modul excel_com2.pm importiert.\n";
 		return $lastlast_row;
 	}
 
-	# stop bei erster leeren Zelle
+	# stop bei letzter Zelle mit Content
 	sub last_row {
 		my $self = shift;
 		my $startrow = shift;
 		my $col = shift;
-		my $i = 1;
-		while (defined($self->{WORKSHEET}->Cells($startrow + $i, $col)->{'Value'} )) {
-			$i++;
+		#my $row = 1;
+		#my $row = 0;
+		my $lastrow = $startrow;
+		while (defined($self->{WORKSHEET}->Cells($lastrow+1, $col)->{'Value'} )) {
+			$lastrow++;
 		}
-		#return ($i+$startrow, $col);
-		return $i+$startrow;
+		return $lastrow;
 	}
 	
 	sub last_col {
@@ -290,79 +329,38 @@ print "Modul excel_com2.pm importiert.\n";
 		return ($row, $i+$startcol);
 	}
 	
+	# TODO auch mit Range-Object verwendbar machen?
 	sub readcol {
 		my $self = shift;
 		my @colarray;
 		my $col = shift;
 		my $row = shift || 1;
 		# row, column
-		#print "readcol:";#, $self->{WORKSHEET}->Cells($row, $col)->{'Value'}, "\n";
+		# TODO finde letzte Zelle und lies als Range - schneller?
 		while ( defined($self->{WORKSHEET}->Cells($row, $col)->{'Value'} )) {
 			push(@colarray, $self->{WORKSHEET}->Cells($row, $col)->{'Value'});
 			$row++;
 		}
+		$self->{readcol_row} = $row;	# aktuelle Leseposition
 		return @colarray;
 	}
-	
-	# undef: default
-	# 'addcell': neue Zeile einfügen, in Form von column oder row
-	sub regex {
-		my $self = shift;
-		$self->{regex} = shift || return $self->{regex};
 
-	}
-	
-	# getter und setter für regular expression
-	sub regexp {
-		my $self = shift;
-		$self->{regexp} = shift || return $self->{regexp};
-		# brackets ('/') entfernen
-		$self->{regexp} =~ s/^\/(.*)\/$/$1/;
-		print "";
-	}
-	
-	## in: array (row or column)
+	## in: array
 	## out: array of array of regex result ('04' -> ('0','4'))
 	sub regex_array {
 		my $self = shift;
 		my @values = @_;
-		## TODO
-		## my $regex_in = $self->{WORKSHEET}->Cells(~pos)->{'Value'};
-		## my $regex = join('', '(.*\.', $regex_in, '$)');
 		my @regex_result;
-		my $regexp = $self->{regexp};
 		foreach my $value (@values) {
-			my @regex_value = $value =~ /$regexp/;
+			my @regex_value = $value =~ /$self->{regex}/;
 			push @regex_result, [@regex_value];
 		}
 		return @regex_result;	# [[0,2],[0,4],[]]
 	}
 	
-	## in: Attribute für regex_col
-	## ...
-	## out#
-	sub regex_col_attr {
-		my $self = shift;
-		my @arr = @_;
-		my $key;
-		my $val;
-		if (scalar @arr > 1) {	# set attr
-			while (@arr) {
-				$key = shift @arr;
-				$val = shift @arr;
-				$self->{regex_col_attr}{$key} = $val;
-			}
-		} elsif (scalar @arr == 1) {	# get attr of key
-			$key = shift @arr;
-			return $self->{regex_col_attr}{$key};
-		} else {	# get all attr as hash
-			return %{$self->{regex_col_attr}};
-		}
-	}
-	
 	## regex_col
 	## default:
-	##  activecell = regexp
+	##  activecell = regex
 	##  $row+1-> readcol
 	##  Column->Add
 	##  $col+1->write_range
@@ -372,12 +370,13 @@ print "Modul excel_com2.pm importiert.\n";
 		my $row = shift;
 		my $col = shift;
 		
-		given ($self->regexp) {
-			when ('activecell') { $self->regexp($self->read_activecell()) }
-			default {$self->regexp($self->read_activecell())}
+		given ($self->regex) {
+			when ('activecell') { $self->regex($self->activecell_val()) }
+			default {$self->regex($self->activecell_val())}
 		}
-		warn "Kein Regular Expression definiert!\n" unless defined $self->{regexp};
+		warn "Kein Regular Expression definiert!\n" unless defined $self->{regex};
 		if (!defined $row && !defined $col) {
+			$self->activecell_pos();
 			($row, $col) = @{$self->{activecell}{pos}};
 			$row++;
 		}
@@ -391,35 +390,12 @@ print "Modul excel_com2.pm importiert.\n";
 			print "";
 		}
 		# add col
-		# ActiveCell.EntireColumn.Insert
-		# Workbooks("yourworkbook").worksheets("theworksheet").Columns(x).Insert
-		#$self->{WORKSHEET}->ActiveCell->EntireColumn->Insert;
-		$self->{WORKBOOK}->Worksheets(1)->Columns($col)->Insert;
+		#$self->{WORKSHEET}->ActiveCell->EntireColumn->Insert;	# funzt nicht
+		$self->{WORKSHEET}->Columns($col)->Insert;
 		$Range->{WORKSHEET} = $self->{WORKSHEET};
 		$Range->{RANGE_START} = $Range->{WORKSHEET}->Cells($row, $col);
 		$Range->write_range(@regex_result);
 		return $Range->{RANGE};
-	}
-	
-	sub read_activecell {
-		my $self = shift;
-		$self->activecell();
-		return $self->{activecell}{value};
-	}
-	
-	## in: value-> set value
-	##  undef: get value und pos
-	sub activecell {
-		my $self = shift;
-		my $val = shift;
-		if (defined $val) {
-			$self->{EXCEL}->ActiveCell->{'Value'} = $val;
-		} else {
-			my $row = $self->{EXCEL}->ActiveCell->Row;
-			my $col = $self->{EXCEL}->ActiveCell->Column;
-			@{$self->{activecell}{pos}} = ($row, $col);
-			$self->{activecell}{value} = $self->{EXCEL}->ActiveCell->{'Value'};
-		}
 	}
 	
 	sub write_range {
@@ -435,15 +411,13 @@ print "Modul excel_com2.pm importiert.\n";
 		my $col = shift || 1;
 		my @last;
 		# row, column
-		# TODO row als array einmal einlesen !?
+		# TODO row als array einmal einlesen - schneller??
 		while ( defined($self->{WORKSHEET}->Cells($row, $col)->{'Value'} )) {
 			push(@rowarray, $self->{WORKSHEET}->Cells($row, $col)->{'Value'});
-			$self->{readrow_col} = $col;
 			@last = ($row, $col);
 			$col++;
 		}
-		## letzte Leseposition
-		# geht auch $self->readrow->{last} ?
+		$self->{readrow_col} = $col;	# letzte, nicht verwendete Leseposition
 		return @rowarray;
 	}
 	
@@ -451,7 +425,17 @@ print "Modul excel_com2.pm importiert.\n";
 		my $self = shift;
 		my $row = shift;
 		my $col = shift;
-		my $sep = shift || ",";
+		my $sep = shift;
+		unless (defined $sep) {
+			# separator from $self
+			$sep = $self->{join_sep};
+			# wenn auch undef->default
+			$sep = ',' unless defined $sep;
+		}
+		unless (defined $row && defined $col) {
+			($row, $col) = $self->activecell_pos();
+		}
+		
 		my @rowarray = $self->readrow($row, $col);
 		my $joinedrow;
 		foreach (@rowarray) {
@@ -462,50 +446,51 @@ print "Modul excel_com2.pm importiert.\n";
 				$joinedrow = $_;
 			}
 		}
-		$self->{WORKSHEET}->Cells($row, $self->{readrow_col}+1)->{'Value'} = $joinedrow;
 		return $joinedrow;
 	}
-	sub set_join_sep {
+
+	# TODO
+	sub join_col {
 		my $self = shift;
-		$self->{join_sep} = shift;
-		#neu: $self->{join_sep} = shift || return $self->{join_sep};
-	}
-	sub get_join_sep {
-		my $self = shift;
-		return $self->{join_sep};
 	}
 	
 	sub join_row_block {
 		my $self = shift;
 		my $row = shift;
 		my $col = shift;
+		unless (defined $row && defined $col) {
+			$self->activecell_pos;
+			($row,$col) = @{$self->{activecell}{pos}};
+		}
 		my $last_row = shift || $self->last_row($row, $col);
 		my $sep = $self->{join_sep} || ",";
+		my $writerow = $row;
+		my $writecol = 1;
+		my @joined_row_array;
 		while ($row <= $last_row) {
 			$self->join_row($row, $col);
+			# ermittle die aeußerste Spalte zum Beschreiben
+			$writecol = $self->{readrow_col} if $writecol < $self->{readrow_col};
+			push @joined_row_array, [$self->join_row($row, $col)];
+			#$self->{WORKSHEET}->Cells($row, $self->{readrow_col}+1)->{'Value'} = $self->join_row($row, $col)
 			$row++;
 		}
-	}
-
-	# mit Handling für Zahlen
-	sub writeval {
-		my $self = shift;
-		my $val = shift;
-		my $insert;
-		if ($val=~ /^0/) {
-			$insert = "=TEXT($val;\"00000\")";
-		} else {
-			$insert = $val;
-		}
-		$self->{WORKSHEET}->Cells($self->{row},$self->{col})->{'Value'} = $insert;
-		#$self->{WORKSHEET}->Cells($self->{row},$self->{col})->{'Value'} = "=TEXT($val;\"00000\")"; 
+		# TODO: write als Range-Objekt
+		# default: add_col, write in  col+1
+		$self->{WORKSHEET}->Columns($writecol)->Insert;
+		$Range->{WORKSHEET} = $self->{WORKSHEET};
+		$Range->{RANGE_START} = $Range->{WORKSHEET}->Cells($writerow, $writecol);
+		$self->write_range(@joined_row_array);	
 	}
 	
+	# TODO join_col_block
+	sub join_col_block {
+		my $self = shift;
+	}
 	
 	# in: Excel->Cells-Objekt
 	# out: Excel->Rangel-Objekt?
 	# oder string
-	#sub rangetocell {
 	sub R1toA1 {
 		my $self = shift;
 		# TODO Unterscheide zwischen input als Cells-Objekt oder Zellen-Tupel (row, col)
@@ -519,9 +504,9 @@ print "Modul excel_com2.pm importiert.\n";
 		# TODO return Range-Objekt
 		#my $range_object = $self->{WORKSHEET}->Range("$input0$row");
 		#return $range_object;
-		
 	}
 	
+	# TODO A1-Format via Excel-Funktion
 	sub rangetocell_format {
 		my $self = shift;
 		my $input = shift;
@@ -581,9 +566,45 @@ print "Modul excel_com2.pm importiert.\n";
 		my $output = $rangetocell_lib{$input};
 		return $output;
 	}
+	
+	## in: Attribute für regex_col
+	## ...
+	## out#
+	sub regex_col_attr {
+		my $self = shift;
+		my @arr = @_;
+		my $key;
+		my $val;
+		if (scalar @arr > 1) {	# set attr
+			while (@arr) {
+				$key = shift @arr;
+				$val = shift @arr;
+				$self->{regex_col_attr}{$key} = $val;
+			}
+		} elsif (scalar @arr == 1) {	# get attr of key
+			$key = shift @arr;
+			return $self->{regex_col_attr}{$key};
+		} else {	# get all attr as hash
+			return %{$self->{regex_col_attr}};
+		}
+	}
 #########
 ## alt ##
 #########
+
+	# mit Handling für Zahlen
+	sub writeval {
+		my $self = shift;
+		my $val = shift;
+		my $insert;
+		if ($val=~ /^0/) {
+			$insert = "=TEXT($val;\"00000\")";
+		} else {
+			$insert = $val;
+		}
+		$self->{WORKSHEET}->Cells($self->{row},$self->{col})->{'Value'} = $insert;
+	}
+
 	sub bildd_dirs {
 		my $self = shift;
 		if (@_) {
@@ -761,8 +782,9 @@ print "Modul excel_com2.pm importiert.\n";
 		#	}
 		#}
 	}
-
-	# $self->write_range->{RANGE_START}
+	
+	## write_range
+	## braucht: $Range->{RANGE_START}
 	sub write_range {
 		my $self = shift;
 		my @arrofarr = @_;

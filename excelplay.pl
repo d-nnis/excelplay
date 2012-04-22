@@ -22,11 +22,11 @@ $excelobj->init();
 # regex, und regexp -handling vereinheitlichn
 
 #$excelobj->regex(paste_resultaddcell);
-#$excelobj->{regexp} = '(\d)(\d)';
+#$excelobj->{regex} = '(\d)(\d)';
 
 
 ## regex_col
-## wo lesen, regexp, neue Zellen?, wo schreiben
+## wo lesen, regex, neue Zellen?, wo schreiben
 # regex_col-default
 #$excelobj->regex_col{attr} = (tee=>"high");
 # )
@@ -37,11 +37,14 @@ $excelobj->init();
 # super haesslich
 #$excelobj->regex_col_attr("addcell",1, "readloc",[4,11]);
 
-#$excelobj->{regexp} = 'activecell';
+#$excelobj->{regexp} = 'activecell';    # undef!!
 #$excelobj->regex('addcell');
 #$excelobj->transpose_level(1);
 
-my $range = $excelobj->regex_col();
+#$excelobj->join_row_block(2,14);
+$excelobj->join_row_block();
+
+#my $range = $excelobj->regex_col();
 
 
 
@@ -50,7 +53,7 @@ __END__
 
 ## merge cells
 #$excelobj->join_row(2,14);
-$excelobj->set_join_sep('-');
+$excelobj->join_sep('-');
 $excelobj->join_row_block(2,14);
 
 ##
