@@ -2,6 +2,7 @@ use File::Copy;
 use strict;
 use warnings;
 use feature qw(say switch);
+use Excel_lib;
 #use Essent;
 
 use Win32::OLE qw(in with);
@@ -32,6 +33,7 @@ print "Modul excel_com.pm importiert.\n";
 		return $self;
 	}
 	
+	# save copy nach Auswahl des workbooks
 	sub init {
 		my $self = shift;
 		# use existing instance if Excel is already running
@@ -114,6 +116,28 @@ print "Modul excel_com.pm importiert.\n";
 	### getter & setter
 	
 	## set || get join-separator
+	
+	sub lastlast_row {
+		my $self = shift;
+		my $col = shift;
+		# my $range = $self->{WORKSHEET}->Cells($caseln, $col);
+		# Range("A65536").End(xlup).Select
+		#my $lastlast_row = $self->{WORKSHEET}->Range($col,65536)->End('xlup')->Select;
+		#$self->{WORKSHEET}->Cells($col,65536)->End('xlup')->Select;
+		#my $cell = $self->{WORKSHEET}->Cells($col,65536);
+		#my $LastRow = $self->{WORKSHEET}->Range("A1")->SpecialCells('xlCellTypeLastCell')->Row;
+		#my $c = $self->{WORKSHEET}->Rows->Count("A");
+		#my $LastRow = $self->{WORKSHEET}->Cells("A100")->SpecialCells('xlCellTypeLastCell')->Row;
+		#my $lastrow = $self->{WORKSHEET}->Cells->SpecialCells('xlCellTypeLastCell')->Activate;
+		my $tee = $self->{EXCEL}->XlCellType->xlCellTypeLastCell;
+		
+		#my $tee = $self->{WORKSHEET}->Range("A200")->Select;
+		# ->End("xlUp");
+		my $lastlast_row = $self->{WORKSHEET}->Range("A200")->End->{'xlUp'}->Select;
+		#1048576
+		return $lastlast_row;
+	}
+	
 	sub join_sep {
 		my $self = shift;
 		$self->{join_sep} = shift || return $self->{join_sep};
@@ -169,146 +193,137 @@ print "Modul excel_com.pm importiert.\n";
 			warn "regular expression muss mit Slash ('/') beginnen und enden!\n";
 			warn "->$self->{regex}<-\n";
 		}
-		#$self->{regex} =~ s/^\/(.*)\/$/$1/;
 	}
 	
 	## active_cell undef: keine Relevanz
 	## 'aim': Aktionsziel
-	sub active_cell {
+	sub activecell {
 		my $self = shift;
 		my $keyword = shift;
-		#$self->{WORKSHEET}->Activate;
-		my $cells_object = $self->{WORKSHEET}->ActiveCell;
-		my $row = $cells_object->Row;
-		#$self->{WORKSHEET}->Cells($readrow, $readcol+$i);
-		#my $row = $cells_object->Row;
-		#Cells($row, $col)->{'Value'}
-		my $col = $self->{WORKSHEET}->ActiveCell->Select->Col;
-		if ($keyword eq 'aim') {
-			@{$self->{active_cell}->{aim}} = ($row, $col);
-		} elsif ($keyword eq 'lastlastrow') {
-			# not functionable yet
-			#@{$self->{active_cell}->{lastlastrow}} = $self->lastlast_row();
-		} else {
-			# default
+		my $row = shift;
+		my $col = shift;
+		given ($keyword) {
+			when ('aim') { @{$self->{activecell}{aim}} = ($row, $col); }
+			when ('lastlastrow') {}
+			default {}
 		}
-		
 	}
 	
 	## Zeile 1 in Spalten
 	## Zeile 2 in Spalten darunter
 	## was ist mit leeren Zellen?
+	## default: read at activecell
+	## write bei lastlast_row
+	
 	sub Zeilen_in_1Spalte {
 		my $self = shift;
 		my $readrow = shift;
 		my $readcol = shift;
 		my $writerow = shift;
 		my $writecol = shift;
-		unless (defined $writerow && defined $writecol) {
-			my $key = $self->{active_cell};
-			$writerow = ${$self->{active_cell}->{aim}}[0];
-			$writecol = ${$self->{active_cell}->{aim}}[1];
-			#$writerow = $self->lastlast_row($readcol)+1;
-			#$writecol = $readcol;
+		$self->{transpose_level} = 0 unless defined $self->{transpose_level};
+		unless (defined $readrow && defined $readcol) {
+			$self->activecell_pos();
+			($readrow, $readcol) = @{$self->{activecell}{pos}};
 		}
-		# TODO: suche erste freie Zeile zum Beschreiben
-		my @vals_n;
-		#my $vals_count = 0;
+		unless (defined $writerow && defined $writecol) {
+			# TODO lastlast_row
+			# TODO suche erste freie Zeile zum Beschreiben
+			if (defined $self->{activecell}{aim}) {
+				($writerow, $writecol) = @{$self->{activecell}{aim}};
+			} else {	# default
+				$writerow = $self->last_row($readrow,$readcol) + 1;
+				$writecol = $readcol;
+			}
+		}
+		my @vals_arraySchachtel;
 		while (my $vals_ref = [ $self->readrow($readrow, $readcol) ] ) {
 			say "row:".$readrow.",";
 			my @vals = @{$vals_ref};
-			#my $vals_count = scalar @vals;
-			#$vals_count += scalar @vals;
 			last if ((scalar @vals) == 0);
-			
-			if ($self->{transpose_level}) {
+			if ($self->{transpose_level} == 1) {
 				# Values einsetzen/ kopieren
 				foreach (@vals) {
-					my $insert;
-					if ($_=~ /^0/) {
-						$insert = "=TEXT($_;\"00000\")";
-					} else {
-						$insert = $_;
-					}
-					push @vals_n, [$insert];
+					push @vals_arraySchachtel, [$self->val_format($_)];
 				}
 				$readrow++;
 			} else {
 				# Formelbezug setzen
 				# Formeln ableiten
-				
-				# funzt auch?
-				# for (@vals) {
-				for (my $i = 0; $i < scalar @vals; $i++) {
+				for (my $i = 0; $i < scalar @vals; $i++) {# count rows of every row, take max for write_range
 					my $sourcecell = $self->{WORKSHEET}->Cells($readrow, $readcol+$i);
-					my @sourcecell_new = $self->R1toA1($sourcecell);
-					# =A1
-					my $cell_A1 = "=$sourcecell_new[0]$sourcecell_new[1]";
-					push @vals_n, [$cell_A1];
-					
-					## TODO range_new als Excel-Range-Objekt!!?
-					## convert: from R1C1-style to A1-style
-					#my @range_new = $self->R1toA1($cells1);
-					## =A1
+					my @sourcecell_A1 = $self->R1toA1($sourcecell);
+					my $cell_A1 = "=$sourcecell_A1[0]$sourcecell_A1[1]";
+					push @vals_arraySchachtel, [$cell_A1];
 				}
 				$readrow++;
 			}
 		}
-		
-		#my $cells_start = $self->{WORKSHEET}->Cells($writerow,$writecol);
-		#my $cells_end = $self->{WORKSHEET}->Cells($writerow+(scalar @vals_n)-1,$writecol);
-		#$self->{range} = $self->{WORKSHEET}->Range($cells_start,$cells_end);
-		#$self->{range}->{'Value'} = [@vals_n];	# [[1],[2],[3],[4]];
-		
-		# TODOTODO
-		# Idee: Werte nur für Methode zugreifbar
-		# neues Package
-		# ISA?
-		# ohne blessing?
 		my $Range = Range->new();
 		$Range->{RANGE_START} = $self->{WORKSHEET}->Cells($writerow, $writecol);
-		#$self->write_range->{RANGE_START} = $self->{WORKSHEET}->Cells($writerow, $writecol);
-		# und auch möglich mit tupel:
-		#$self->write_range->{RANGE_START} = ($writerow, $writecol);
-		# TODO Exceobject-Variablen nicht durch Vererbung in Range verfügbar?
 		$Range->{WORKSHEET} = $self->{WORKSHEET};
-		$Range->write_range(@vals_n);	# [[1],[2],[3],[4]];
+		$Range->write_range(@vals_arraySchachtel);	# [[1],[2],[3],[4]];
 	}
 	
 	sub Spalten_in_1Zeile {
 		my $self = shift;
+		my $readrow = shift;
+		my $readcol = shift;
+		my $writerow = shift;
+		my $writecol = shift;
+		$self->{transpose_level} = 0 unless defined $self->{transpose_level};
+		unless (defined $readrow && defined $readcol) {
+			$self->activecell_pos();
+			($readrow, $readcol) = @{$self->{activecell}{pos}};
+		}
+		unless (defined $writerow && defined $writecol) {
+			# TODO lastlast_row
+			# TODO suche erste freie Zeile zum Beschreiben
+			if (defined $self->{activecell}{aim}) {
+				($writerow, $writecol) = @{$self->{activecell}{aim}};
+			} else {	# default
+				$writerow = $readrow;
+				$writecol = $self->last_col($readcol,$readrow) + 1;
+			}
+		}
+		my @vals_arraySchachtel;
+		while (my $vals_ref = [ $self->readcol($readrow, $readcol) ] ) {
+			say "col:".$readcol.",";
+			my @vals = @{$vals_ref};
+			last if ((scalar @vals) == 0);
+			if ($self->{transpose_level} == 1) {
+				# Values einsetzen/ kopieren
+				foreach (@vals) {
+					push @vals_arraySchachtel, [$self->val_format($_)];
+				}
+				$readcol++;
+			} else {
+				# Formelbezug setzen
+				# Formeln ableiten
+				for (my $i = 0; $i < scalar @vals; $i++) {	# count cols of every row, take max for write_range
+					my $sourcecell = $self->{WORKSHEET}->Cells($readrow+$i, $readcol);
+					my @sourcecell_A1 = $self->R1toA1($sourcecell);
+					my $cell_A1 = "=$sourcecell_A1[0]$sourcecell_A1[1]";
+					push @vals_arraySchachtel, [$cell_A1];
+				}
+				$readcol++;
+			}
+		}
+		my $Range = Range->new();
+		$Range->{RANGE_START} = $self->{WORKSHEET}->Cells($writerow, $writecol);
+		$Range->{WORKSHEET} = $self->{WORKSHEET};
+		$Range->write_range(@vals_arraySchachtel);	# [[1],[2],[3],[4]];
 		
 	}
 	
-	sub lastlast_row {
-		my $self = shift;
-		my $col = shift;
-		# my $range = $self->{WORKSHEET}->Cells($caseln, $col);
-		# Range("A65536").End(xlup).Select
-		#my $lastlast_row = $self->{WORKSHEET}->Range($col,65536)->End('xlup')->Select;
-		#$self->{WORKSHEET}->Cells($col,65536)->End('xlup')->Select;
-		#my $cell = $self->{WORKSHEET}->Cells($col,65536);
-		#my $LastRow = $self->{WORKSHEET}->Range("A1")->SpecialCells('xlCellTypeLastCell')->Row;
-		#my $c = $self->{WORKSHEET}->Rows->Count("A");
-		#my $LastRow = $self->{WORKSHEET}->Cells("A100")->SpecialCells('xlCellTypeLastCell')->Row;
-		#my $lastrow = $self->{WORKSHEET}->Cells->SpecialCells('xlCellTypeLastCell')->Activate;
-		
-		
-		#my $cell = $self->{WORKSHEET}->Cells($col,100)->Select;
-		#$self->{WORKSHEET}->Cells(200,1)->Select;
-		#$self->{WORKSHEET}->Cells(200,1)->End('xlUp')->Select;
-		my $tee = $self->{WORKSHEET}->Range("A200")->Select;
-		# ->End("xlUp");
-		my $lastlast_row = $self->{WORKSHEET}->Range("A200")->End->{'xlUp'}->Select;
-		#1048576
-		return $lastlast_row;
-	}
+
 
 	# stop bei letzter Zelle mit Content
+	
 	sub last_row {
 		my $self = shift;
 		my $startrow = shift;
-		my $col = shift;
+		my $col = shift || 1;
 		#my $row = 1;
 		#my $row = 0;
 		my $lastrow = $startrow;
@@ -322,19 +337,19 @@ print "Modul excel_com.pm importiert.\n";
 		my $self = shift;
 		my $row = shift;
 		my $startcol = shift;
-		my $i = 1;
-		while (defined($self->{WORKSHEET}->Cells($row, $startcol+$i)->{'Value'} )) {
-			$i++;
+		my $lastcol = $startcol;
+		while (defined($self->{WORKSHEET}->Cells($row, $lastcol+1)->{'Value'} )) {
+			$lastcol++;
 		}
-		return ($row, $i+$startcol);
+		return $lastcol;
 	}
 	
 	# TODO auch mit Range-Object verwendbar machen?
 	sub readcol {
 		my $self = shift;
 		my @colarray;
-		my $col = shift;
-		my $row = shift || 1;
+		my $row = shift;
+		my $col = shift || 1;
 		# row, column
 		# TODO finde letzte Zelle und lies als Range - schneller?
 		while ( defined($self->{WORKSHEET}->Cells($row, $col)->{'Value'} )) {
@@ -381,7 +396,7 @@ print "Modul excel_com.pm importiert.\n";
 			$row++;
 		}
 		
-		my @array = $self->readcol($col, $row);
+		my @array = $self->readcol($row, $col);
 		my @regex_result = $self->regex_array(@array);
 		my $range_attr = $Range->range_attr();
 		if (scalar (keys %$range_attr) == 0) {	# keine settings -> default settings
@@ -390,7 +405,6 @@ print "Modul excel_com.pm importiert.\n";
 			print "";
 		}
 		# add col
-		#$self->{WORKSHEET}->ActiveCell->EntireColumn->Insert;	# funzt nicht
 		$self->{WORKSHEET}->Columns($col)->Insert;
 		$Range->{WORKSHEET} = $self->{WORKSHEET};
 		$Range->{RANGE_START} = $Range->{WORKSHEET}->Cells($row, $col);
@@ -488,6 +502,13 @@ print "Modul excel_com.pm importiert.\n";
 		my $self = shift;
 	}
 	
+	sub val_format {
+		my $self = shift;
+		my $val = shift;
+		$val = "=TEXT($_;\"00000\")" if ($val=~ /^0/);
+		return $val;
+	}
+	
 	# in: Excel->Cells-Objekt
 	# out: Excel->Rangel-Objekt?
 	# oder string
@@ -497,74 +518,13 @@ print "Modul excel_com.pm importiert.\n";
 		my $cells_object = shift;
 		my $row = $cells_object->Row;
 		my $col = $cells_object->Column;
-		my $col_str = $self->rangetocell_format($col);
+		my $col_str = Excellib::rangetocell_format($col);
 		return ($col_str,$row);
 		
 		
 		# TODO return Range-Objekt
 		#my $range_object = $self->{WORKSHEET}->Range("$input0$row");
 		#return $range_object;
-	}
-	
-	# TODO A1-Format via Excel-Funktion
-	sub rangetocell_format {
-		my $self = shift;
-		my $input = shift;
-		my %rangetocell_lib = (
-			1=>"A",
-			2=>"B",
-			3=>"C",
-			4=>"D",
-			5=>"E",
-			6=>"F",
-			7=>"G",
-			8=>"H",
-			9=>"I",
-			10=>"J",
-			11=>"K",
-			12=>"L",
-			13=>"M",
-			14=>"N",
-			15=>"O",
-			16=>"P",
-			17=>"Q",
-			18=>"R",
-			19=>"S",
-			20=>"T",
-			21=>"U",
-			22=>"V",
-			23=>"W",
-			24=>"X",
-			25=>"Y",
-			26=>"Z",
-			27=>"AA",
-			28=>"AB",
-			29=>"AC",
-			30=>"AD",
-			31=>"AE",
-			32=>"AF",
-			33=>"AG",
-			34=>"AH",
-			35=>"AI",
-			36=>"AJ",
-			37=>"AK",
-			38=>"AL",
-			39=>"AM",
-			40=>"AN",
-			41=>"AO",
-			42=>"AP",
-			43=>"AQ",
-			44=>"AR",
-			45=>"AS",
-			46=>"AT",
-			47=>"AU",
-			48=>"AV",
-			49=>"AW",
-			50=>"AX",
-			51=>"AY",
-			52=>"AZ");
-		my $output = $rangetocell_lib{$input};
-		return $output;
 	}
 	
 	## in: Attribute für regex_col
@@ -718,6 +678,13 @@ print "Modul excel_com.pm importiert.\n";
 			40					# Height As Single
 		);
 		print "";
+		
+#		my $lastrow = $self->{WORKSHEET}->
+#		         nLastRow = .Cells.Find(What:="*", After:=.Cells(1), _
+#                LookIn:=xlFormulas, LookAt:=xlWhole, _
+#                SearchOrder:=xlByRows, _
+#                SearchDirection:=xlPrevious).Row
+		
 	}
 	
 	sub init_Excelfile {
@@ -745,6 +712,7 @@ print "Modul excel_com.pm importiert.\n";
 	package Range;
 	# nötig?
 	# ja, damit auch die Excelobjekte gehandhabt werden können (Cells, Range etc.)
+	# TODO Exceobject-Variablen nicht durch Vererbung in Range verfügbar?
 	@Range::ISA = qw(Excelobject);
 	
 	sub new {
@@ -783,6 +751,7 @@ print "Modul excel_com.pm importiert.\n";
 		#}
 	}
 	
+	## TODO: erste und letzte Cell von Range in Farbe
 	## write_range
 	## braucht: $Range->{RANGE_START}
 	sub write_range {
@@ -810,8 +779,11 @@ print "Modul excel_com.pm importiert.\n";
 			# add row $or column at $position
 		} else {
 			# Werte einsetzen
-			$self->{RANGE}->{'Value'} = [@arrofarr];
 			# [[1a,1b,1c,1d],[2a,2b,2c,2d],[3a,3b,3c]];
+			$self->{RANGE}->{'Value'} = [@arrofarr];
+			# Farbe für erste und letzte Zelle
+			$self->{RANGE_START}->Interior->{'ColorIndex'} = 20;
+			$range_end->Interior->{'ColorIndex'} = 20;
 		}
 	}
 }
