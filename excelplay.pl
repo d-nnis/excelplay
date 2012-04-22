@@ -5,14 +5,14 @@ use feature qw/say/;
 
 #my $excelfile = "f:\\poly\\HU-tp4\\2012-03-15 Vereinsliste aktive.xlsx";
 my $excelobj = Excelobject->new();
-$excelobj->init();
 
+$excelobj->init();
 #$excelobj->init($excelfile,4);
 
 #$excelobj->Zeilen_in_1Spalte(2,2,10,2);
+#$excelobj->Zeilen_in_1Spalte();
+$excelobj->Spalten_in_1Zeile();
 
-# transpose_level 0: Formelbezug
-# 1: Wert kopieren
 
 #$excelobj->active_cell('aim');
 
@@ -24,25 +24,14 @@ $excelobj->init();
 #$excelobj->regex(paste_resultaddcell);
 #$excelobj->{regex} = '(\d)(\d)';
 
-
-## regex_col
-## wo lesen, regex, neue Zellen?, wo schreiben
-# regex_col-default
-#$excelobj->regex_col{attr} = (tee=>"high");
-# )
-#my %attr = (addcell=>0, readloc=>[4,11]);
-#my $attr = {addcell=>0};
-#$excelobj->regex_col(\%attr);
-#$excelobj->regex_col_attr(\%attr);
-# super haesslich
-#$excelobj->regex_col_attr("addcell",1, "readloc",[4,11]);
-
-#$excelobj->{regexp} = 'activecell';    # undef!!
 #$excelobj->regex('addcell');
+
+# transpose_level 0: Formelbezug
+# 1: Wert kopieren
 #$excelobj->transpose_level(1);
 
 #$excelobj->join_row_block(2,14);
-$excelobj->join_row_block();
+#$excelobj->join_row_block();
 
 #my $range = $excelobj->regex_col();
 
