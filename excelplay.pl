@@ -11,7 +11,7 @@ $excelobj->init();
 
 #$excelobj->Zeilen_in_1Spalte(2,2,10,2);
 #$excelobj->Zeilen_in_1Spalte();
-$excelobj->Spalten_in_1Zeile();
+#$excelobj->Spalten_in_1Zeile();
 
 
 #$excelobj->active_cell('aim');
@@ -33,7 +33,7 @@ $excelobj->Spalten_in_1Zeile();
 #$excelobj->join_row_block(2,14);
 #$excelobj->join_row_block();
 
-#my $range = $excelobj->regex_col();
+$excelobj->regex_col();
 
 
 

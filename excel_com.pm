@@ -377,14 +377,14 @@ print "Modul excel_com.pm importiert.\n";
 	## default:
 	##  activecell = regex
 	##  $row+1-> readcol
-	##  Column->Add
+	##  Column->Add (in write_range)
 	##  $col+1->write_range
 	## in:
 	sub regex_col {
 		my $self = shift;
 		my $row = shift;
 		my $col = shift;
-		
+		my $readrow;
 		given ($self->regex) {
 			when ('activecell') { $self->regex($self->activecell_val()) }
 			default {$self->regex($self->activecell_val())}
@@ -393,21 +393,24 @@ print "Modul excel_com.pm importiert.\n";
 		if (!defined $row && !defined $col) {
 			$self->activecell_pos();
 			($row, $col) = @{$self->{activecell}{pos}};
-			$row++;
+			$readrow = $row+1;
 		}
+		#my $range_attr = $Range->range_attr();
+		#if (scalar (keys %$range_attr) == 0) {	# keine settings -> default settings
+		#	$col++;
+		#	my $cells_start = $self->{WORKSHEET}->Cells($row, $col);
+		#	$Range->range_attr($cells_start);
+		#	print "";
+		#}
 		
-		my @array = $self->readcol($row, $col);
+		
+		my @array = $self->readcol($readrow, $col);
 		my @regex_result = $self->regex_array(@array);
-		my $range_attr = $Range->range_attr();
-		if (scalar (keys %$range_attr) == 0) {	# keine settings -> default settings
-			my $cells_start = $self->{WORKSHEET}->Cells($row, ++$col);
-			$Range->range_attr($cells_start);
-			print "";
-		}
 		# add col
-		$self->{WORKSHEET}->Columns($col)->Insert;
+		# in write_range
+		#$self->{WORKSHEET}->Columns($col)->Insert;
 		$Range->{WORKSHEET} = $self->{WORKSHEET};
-		$Range->{RANGE_START} = $Range->{WORKSHEET}->Cells($row, $col);
+		$Range->{RANGE_START} = $Range->{WORKSHEET}->Cells($readrow, $col+1);
 		$Range->write_range(@regex_result);
 		return $Range->{RANGE};
 	}
@@ -732,24 +735,24 @@ print "Modul excel_com.pm importiert.\n";
 		#	RaiseError => 0
 		#);
 	
-	sub range_attr {
-		my $self = shift;
-		$self->{RANGE_START} = shift || return $self->{RANGE_START};
-		#my $attr = shift;
-		#my $val = shift;
-		#if (defined $val) {	# set attr
-		#	$self->{attr}{$attr} = $val
-		#} elsif (defined $attr) {	# get val of $attr
-		#	return $self->{attr}{$attr};
-		#} else {	# get all attr
-		#	#${$self->{attr}}{hey} = "ho";
-		#	if ($self->{attr}) {
-		#		return $self->{attr};
-		#	} else {
-		#		return undef;
-		#	}
-		#}
-	}
+	#sub range_attr {
+	#	my $self = shift;
+	#	$self->{RANGE_START} = shift || return $self->{RANGE_START};
+	#	#my $attr = shift;
+	#	#my $val = shift;
+	#	#if (defined $val) {	# set attr
+	#	#	$self->{attr}{$attr} = $val
+	#	#} elsif (defined $attr) {	# get val of $attr
+	#	#	return $self->{attr}{$attr};
+	#	#} else {	# get all attr
+	#	#	#${$self->{attr}}{hey} = "ho";
+	#	#	if ($self->{attr}) {
+	#	#		return $self->{attr};
+	#	#	} else {
+	#	#		return undef;
+	#	#	}
+	#	#}
+	#}
 	
 	## TODO: erste und letzte Cell von Range in Farbe
 	## write_range
@@ -758,19 +761,29 @@ print "Modul excel_com.pm importiert.\n";
 		my $self = shift;
 		my @arrofarr = @_;
 		my $depth_arr = 0;
+		my $range_start_row = $self->{RANGE_START}->Row;
+		my $range_start_col = $self->{RANGE_START}->Column;
 		# wie tief ist @arrofarr?
 		# TODO mit map:
 		foreach my $arr (@arrofarr) {
 			my @arr_de = @$arr;
 			$depth_arr = scalar @arr_de if ( (scalar @arr_de) > $depth_arr );
 		}
+		# add cells
+		# add cols
+		for (my $i = 1; $i <= $depth_arr; $i++) {
+			$self->{WORKSHEET}->Columns($range_start_col)->Insert;
+		}
+		
 		# Range berechnen: RANGE_START + Dimensionen von @arrofarr
-		my $range_end_row = $self->{RANGE_START}->Row + scalar @arrofarr-1;
-		my $range_end_col = $self->{RANGE_START}->Column + $depth_arr - 1;
+		#my $range_end_col = $self->{RANGE_START}->Column + $depth_arr - 1;
+		my $range_end_row = $range_start_row + scalar @arrofarr-1;
+		my $range_end_col = $range_start_col + $depth_arr - 1;
+		my $range_start = $self->{WORKSHEET}->Cells($range_start_row, $range_start_col);
 		my $range_end = $self->{WORKSHEET}->Cells($range_end_row, $range_end_col);
 		#my $range = $self->{WORKSHEET}->Range($self->{RANGE_START},$range_end);
 		# oder public?
-		$self->{RANGE} = $self->{WORKSHEET}->Range($self->{RANGE_START},$range_end);
+		$self->{RANGE} = $self->{WORKSHEET}->Range($range_start,$range_end);
 		
 		# $self->{regex} erreichbar?
 		#if ( $self->{regex} eq 'addcell' ) {
@@ -782,7 +795,7 @@ print "Modul excel_com.pm importiert.\n";
 			# [[1a,1b,1c,1d],[2a,2b,2c,2d],[3a,3b,3c]];
 			$self->{RANGE}->{'Value'} = [@arrofarr];
 			# Farbe für erste und letzte Zelle
-			$self->{RANGE_START}->Interior->{'ColorIndex'} = 20;
+			$range_start->Interior->{'ColorIndex'} = 20;
 			$range_end->Interior->{'ColorIndex'} = 20;
 		}
 	}
