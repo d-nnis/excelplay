@@ -3,8 +3,6 @@ use strict;
 use warnings;
 use feature qw(say switch);
 use Excel_lib;
-#use Essent;
-
 use Win32::OLE qw(in with);
 
 # TODO welche Funktionen brauche ich?
@@ -16,13 +14,13 @@ $Win32::OLE::Warn = 3;
 # running under -w, the Win32::OLE module invokes Carp::carp(). If $Win32::OLE::Warn
 # is set to 3, Carp::croak() is invoked and the program dies immediately.
 
+my $Range;
+
 print "Modul excel_com.pm importiert.\n";
 
 {
 	package Excelobject;
 	#@Excelobject::ISA = qw(Range);
-	
-	my $Range;
 	
 	sub new {
 		my $class = shift;
@@ -30,6 +28,15 @@ print "Modul excel_com.pm importiert.\n";
 		#$self -> {EXCELFILE} = $_[0];
 		bless($self, $class);
 		$Range = Range->new();
+		
+		## default-settings
+		$self->{add_cell} = 1;	# add cell before data dumping
+		$self->{transpose_level} = 0;	# insert formula instead of copy values
+		
+		$Range->{add_cell} = 1;	# add cell before data dumping
+		$Range->{transpose_level} = 0;	# insert formula instead of copy values
+		##
+		
 		return $self;
 	}
 	
@@ -166,6 +173,20 @@ print "Modul excel_com.pm importiert.\n";
 		} else {
 			@{$self->{activecell}{pos}} = ($self->{EXCEL}->ActiveCell->Row, $self->{EXCEL}->ActiveCell->Column);
 		}
+	}
+	
+	## bei Daten in Zellen einfügen zuvor Zellen neu einfügen
+	## in: 0 || 1 (default)
+	sub add_cell {
+		my $self = shift;
+		my $val = shift;
+		if (defined $val) {
+			$self->{add_cell} = $val;
+			$Range->{add_cell} = $val;
+		} else {
+			return $self->{add_cell};
+		}
+		
 	}
 	
 	## transpose_level 0||undef: Formelbezug
@@ -729,31 +750,12 @@ print "Modul excel_com.pm importiert.\n";
 		my $self = shift;
 		$self->{RANGE} = shift || return $self->{RANGE};
 	}
-	
 		#	%{$self->{attr}} = (
 		#	PrintError => 1,
 		#	RaiseError => 0
 		#);
 	
-	#sub range_attr {
-	#	my $self = shift;
-	#	$self->{RANGE_START} = shift || return $self->{RANGE_START};
-	#	#my $attr = shift;
-	#	#my $val = shift;
-	#	#if (defined $val) {	# set attr
-	#	#	$self->{attr}{$attr} = $val
-	#	#} elsif (defined $attr) {	# get val of $attr
-	#	#	return $self->{attr}{$attr};
-	#	#} else {	# get all attr
-	#	#	#${$self->{attr}}{hey} = "ho";
-	#	#	if ($self->{attr}) {
-	#	#		return $self->{attr};
-	#	#	} else {
-	#	#		return undef;
-	#	#	}
-	#	#}
-	#}
-	
+
 	## TODO: erste und letzte Cell von Range in Farbe
 	## write_range
 	## braucht: $Range->{RANGE_START}
@@ -769,16 +771,23 @@ print "Modul excel_com.pm importiert.\n";
 			my @arr_de = @$arr;
 			$depth_arr = scalar @arr_de if ( (scalar @arr_de) > $depth_arr );
 		}
+		# $depth_arr mind. = 1: wenn @arrofarr leer, trotzdem extra Zellen (col) einfügen
+		$depth_arr = 1 if $depth_arr < 1;
 		# add cells
 		# add cols
-		for (my $i = 1; $i <= $depth_arr; $i++) {
-			$self->{WORKSHEET}->Columns($range_start_col)->Insert;
+		if ($Range->{add_cell}) {
+			for (my $i = 1; $i <= $depth_arr; $i++) {
+				$self->{WORKSHEET}->Columns($range_start_col)->Insert;
+			}
 		}
 		
 		# Range berechnen: RANGE_START + Dimensionen von @arrofarr
 		#my $range_end_col = $self->{RANGE_START}->Column + $depth_arr - 1;
 		my $range_end_row = $range_start_row + scalar @arrofarr-1;
 		my $range_end_col = $range_start_col + $depth_arr - 1;
+		# $range_end_col & _row darf nie kleiner sein als $range_start_row $ _row
+		$range_end_col = $range_start_col if $range_end_col < $range_start_col;
+		$range_end_row = $range_start_row if $range_end_row < $range_start_row;
 		my $range_start = $self->{WORKSHEET}->Cells($range_start_row, $range_start_col);
 		my $range_end = $self->{WORKSHEET}->Cells($range_end_row, $range_end_col);
 		#my $range = $self->{WORKSHEET}->Range($self->{RANGE_START},$range_end);
@@ -799,6 +808,26 @@ print "Modul excel_com.pm importiert.\n";
 			$range_end->Interior->{'ColorIndex'} = 20;
 		}
 	}
+	
+	#sub range_attr {
+	#	my $self = shift;
+	#	$self->{RANGE_START} = shift || return $self->{RANGE_START};
+	#	#my $attr = shift;
+	#	#my $val = shift;
+	#	#if (defined $val) {	# set attr
+	#	#	$self->{attr}{$attr} = $val
+	#	#} elsif (defined $attr) {	# get val of $attr
+	#	#	return $self->{attr}{$attr};
+	#	#} else {	# get all attr
+	#	#	#${$self->{attr}}{hey} = "ho";
+	#	#	if ($self->{attr}) {
+	#	#		return $self->{attr};
+	#	#	} else {
+	#	#		return undef;
+	#	#	}
+	#	#}
+	#}
+	
 }
 
 {

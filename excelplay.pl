@@ -10,7 +10,8 @@ $excelobj->init();
 #$excelobj->init($excelfile,4);
 
 #$excelobj->Zeilen_in_1Spalte(2,2,10,2);
-#$excelobj->Zeilen_in_1Spalte();
+$excelobj->add_cell(0);
+$excelobj->Zeilen_in_1Spalte();
 #$excelobj->Spalten_in_1Zeile();
 
 
@@ -33,7 +34,7 @@ $excelobj->init();
 #$excelobj->join_row_block(2,14);
 #$excelobj->join_row_block();
 
-$excelobj->regex_col();
+#$excelobj->regex_col();
 
 
 

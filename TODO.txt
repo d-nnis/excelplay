@@ -5,3 +5,4 @@ TODO
  - wenn undef | '': nicht einfügen/ überschreiben
    -> Range mit Einzelzellen oder einzeln einfügen
 * Excel-Instanzen-Handling
+ - Range-Object hat Zugang zu Excelobject-Variablen/ Hashes
