@@ -1,8 +1,40 @@
-
+2012 Apr 25, 18:32:33
+excelplay.pl
+===========
 TODO
-* regex_col
- - regex in mehreren Schritten: in alte Spalten einfügen
- - wenn undef | '': nicht einfügen/ überschreiben
-   -> Range mit Einzelzellen oder einzeln einfügen
-* Excel-Instanzen-Handling
- - Range-Object hat Zugang zu Excelobject-Variablen/ Hashes
+===========
+
+excel_com.pm
+===========
+TODO welche Funktionen brauche ich?
+TODO Welche Konstanten sind mir dadurch zugänglich?
+TODO: test, wenn keine Excel-Instanz laeuft etc.
+TODO: bestimmtes Excel-File öffnen
+TODO: alle Excel-Threads erfassen und aufzählen/ wählen, CREATOR?
+TODO: ausbauen um mit mehreren Sheets zu arbeiten
+TODO auch mit cells-object nutzbar
+TODO execute gesammelt
+TODO abstrahieren, bzw. intro einer Methode immer das selbe??
+TODO parse $result_execute, catch 'konnte vom System nicht gefunden werden' o.ae.!
+TODO lastlast_row
+TODO suche erste freie Zeile zum Beschreiben
+TODO lastlast_row
+TODO suche erste freie Zeile zum Beschreiben
+TODO auch mit Range-Object verwendbar machen?
+TODO finde letzte Zelle und lies als Range - schneller?
+TODO row als array einmal einlesen - schneller??
+TODO
+TODO: write als Range-Objekt
+TODO join_col_block
+TODO Unterscheide zwischen input als Cells-Objekt oder Zellen-Tupel (row, col)
+TODO return Range-Objekt
+TODO Exceobject-Variablen nicht durch Vererbung in Range verfügbar?
+TODO: erste und letzte Cell von Range in Farbe
+TODO mit map:
+===========
+
+excel_lib.pm
+===========
+TODO A1-Format via Excel-Funktion
+===========
+

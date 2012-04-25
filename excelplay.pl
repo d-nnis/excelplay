@@ -9,11 +9,17 @@ my $excelobj = Excelobject->new();
 $excelobj->init();
 #$excelobj->init($excelfile,4);
 
-#$excelobj->Zeilen_in_1Spalte(2,2,10,2);
-$excelobj->add_cell(0);
-$excelobj->Zeilen_in_1Spalte();
-#$excelobj->Spalten_in_1Zeile();
+## settings
+#$excelobj->add_cell(0);
+#$excelobj->transpose_level(0);
+#$excelobj->{confirm_execute} = 0;
 
+$excelobj->batch_col_block();
+#$excelobj->batch_col();
+
+#$excelobj->Zeilen_in_1Spalte(2,2,10,2);
+#$excelobj->Zeilen_in_1Spalte();
+#$excelobj->Spalten_in_1Zeile();
 
 #$excelobj->active_cell('aim');
 

@@ -1,0 +1,8 @@
+
+TODO
+* regex_col
+ - regex in mehreren Schritten: in alte Spalten einfügen
+ - wenn undef | '': nicht einfügen/ überschreiben
+   -> Range mit Einzelzellen oder einzeln einfügen
+* Excel-Instanzen-Handling
+ - Range-Object hat Zugang zu Excelobject-Variablen/ Hashes

@@ -32,6 +32,7 @@ print "Modul excel_com.pm importiert.\n";
 		## default-settings
 		$self->{add_cell} = 1;	# add cell before data dumping
 		$self->{transpose_level} = 0;	# insert formula instead of copy values
+		$self->{confirm_execute} = 1;
 		
 		$Range->{add_cell} = 1;	# add cell before data dumping
 		$Range->{transpose_level} = 0;	# insert formula instead of copy values
@@ -228,6 +229,71 @@ print "Modul excel_com.pm importiert.\n";
 			when ('lastlastrow') {}
 			default {}
 		}
+	}
+	
+	sub batch_col_block {
+		my $self = shift;
+		my $row = shift;
+		my $col = shift;
+		if (!defined $row && !defined $col) {
+			$self->activecell_pos();
+			($row, $col) = @{$self->{activecell}{pos}};
+			#$readrow = $row+1;
+		}
+		while (defined $self->{WORKSHEET}->Cells($row, $col)->{'Value'}) {
+			$self->batch_col($row, $col);
+			$col++;
+		}
+		# TODO execute gesammelt
+	}
+	
+	## batch_row
+	## lies Zellen aus und schreibe in batch
+	## erste Zelle: path to execute
+	## default: confirm_execute
+	sub batch_col {
+		my $self = shift;
+		# TODO abstrahieren, bzw. intro einer Methode immer das selbe??
+		my $row = shift;
+		my $col = shift;
+		my $filename;
+		if (!defined $row && !defined $col) {
+			$self->activecell_pos();
+			($row, $col) = @{$self->{activecell}{pos}};
+		}
+		my $path_execute = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
+		$row++;
+		$path_execute =~ s/\\/\\\\/g;
+		unless ($path_execute =~ /\\\\$/) {
+			$path_execute .= "\\\\";
+		}
+		$filename = $path_execute."excel_batch.bat";
+		my @array = $self->readcol($row, $col);
+		my $batch_string = join "\n", @array;
+		
+		main::writefile($filename, $batch_string);
+		my $result_execute = '';
+		chdir($path_execute) or die "Can't change directory to $path_execute: $!";
+		if ($self->{confirm_execute}) {
+			print "Execute ", $filename, "?\n";
+			if (main::confirmJN()) {
+				$result_execute = `$filename`;
+				main::writefile($filename.".log", $result_execute);
+				print "\n___EXECUTE LOG___\n";
+				print $result_execute;
+				print "\n_________________\n";
+				
+			} else {
+				print "File not executed\n";
+			}
+		} else {
+			$result_execute = `$filename`;
+			main::writefile($filename.".log", $result_execute);
+			print "\n___EXECUTE LOG___\n";
+			print $result_execute;
+			print "\n_________________\n";
+		}
+		# TODO parse $result_execute, catch 'konnte vom System nicht gefunden werden' o.ae.!
 	}
 	
 	## Zeile 1 in Spalten
@@ -952,6 +1018,37 @@ sub confirm_numcount {
 		chomp $eingabe;
 	}
 	return $eingabe+0;
+}
+
+sub writefile {
+		my $file = shift;
+		#my @lines = @_[1 .. $#_];	# alle Elemente 1 bis Ende
+		my @lines = @_;	# alle Elemente 0 bis Ende
+		print "write file ", $file;
+		if (!open (WFILE, '>', $file) ) {
+			print "\n!!! Achtung: Kann $file nicht oeffnen: $!\nNeuer Versuch Tastendruck";
+			while (<STDIN> eq '') {}
+			writefile($file, @lines);
+		}
+		open (WFILE, '>', $file);
+		print WFILE @lines;
+		print " lines: ", scalar @lines, ".\n";
+		close WFILE;
+}
+
+sub confirmJN {
+	my $eingabe='';
+	my @exp_keys = ('j','n');
+	until (grep {$eingabe eq $_} @exp_keys) {
+		print "(j)a oder (n)ein... \n>";
+		$eingabe = <STDIN>;
+		chomp $eingabe;
+	}
+	if ($eingabe eq 'j') {
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 __END__
