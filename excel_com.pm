@@ -21,6 +21,7 @@ print "Modul excel_com.pm importiert.\n";
 
 {
 	package Excelobject;
+	$Excelobject::VERSION = "0.5";
 	#@Excelobject::ISA = qw(Range);
 	
 	sub new {
@@ -34,6 +35,7 @@ print "Modul excel_com.pm importiert.\n";
 		$self->{add_cell} = 1;	# add cell before data dumping
 		$self->{transpose_level} = 0;	# insert formula instead of copy values
 		$self->{confirm_execute} = 1;
+		$self->{execute_show_all} = 0;
 		
 		$Range->{add_cell} = 1;	# add cell before data dumping
 		$Range->{transpose_level} = 0;	# insert formula instead of copy values
@@ -248,6 +250,8 @@ print "Modul excel_com.pm importiert.\n";
 		# TODO execute gesammelt
 	}
 	
+	
+	
 	## batch_row
 	## lies Zellen aus und schreibe in batch
 	## erste Zelle: path to execute
@@ -264,6 +268,7 @@ print "Modul excel_com.pm importiert.\n";
 		}
 		my $path_execute = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
 		$row++;
+		die "No directory: ->$path_execute<-: $!" unless (-e $path_execute);
 		$path_execute =~ s/\\/\\\\/g;
 		unless ($path_execute =~ /\\\\$/) {
 			$path_execute .= "\\\\";
@@ -273,29 +278,110 @@ print "Modul excel_com.pm importiert.\n";
 		my $batch_string = join "\n", @array;
 		
 		File::writefile($filename, $batch_string);
-		my $result_execute = '';
-		chdir($path_execute) or die "Can't change directory to $path_execute: $!";
+		
+		$self->execute_batch($path_execute, $filename);
+		
+		# TODO parse $result_execute, catch 'konnte vom System nicht gefunden werden' o.ae.!
+	}
+	
+	sub execute_batch {
+		my $self = shift;
+		my $path_execute = shift;
+		my $filename = shift;
+		#my $result_execute = '';
+		#my $result_error = '';
+		#chdir($path_execute) or die "Can't change directory to $path_execute: $!";
 		if ($self->{confirm_execute}) {
 			print "Execute ", $filename, "?\n";
 			if (Process::confirmJN()) {
-				$result_execute = `$filename`;
-				File::writefile($filename.".log", $result_execute);
-				print "\n___EXECUTE LOG___\n";
-				print $result_execute;
-				print "\n_________________\n";
-				
+				$self->execute($filename);
 			} else {
 				print "File not executed\n";
 			}
 		} else {
-			$result_execute = `$filename`;
-			File::writefile($filename.".log", $result_execute);
-			print "\n___EXECUTE LOG___\n";
-			print $result_execute;
-			print "\n_________________\n";
+			$self->execute($path_execute, $filename);
+			print "";
+			#execute();
+			#$result_execute = `$filename`;
+			#File::writefile($filename.".log", $result_execute);
+			#print "\n___EXECUTE LOG___\n";
+			#print $result_execute;
+			#print "\n_________________\n";
 		}
-		# TODO parse $result_execute, catch 'konnte vom System nicht gefunden werden' o.ae.!
+		
+		sub execute {
+			my $self = shift;
+			my $path_execute = shift;
+			my $filename = shift;
+			my $result_execute = '';
+			my $result_error = '';
+			my @operation_ok = ("1 Datei.+kopiert", "1 file.+copied");
+			#my @operation_ok = ("1 Datei", "1 file");	# funzt
+			my $match = "1 file";
+			# TODO funktioniert trotz absolutem Pfad nicht ohne chdir?
+			chdir($path_execute) or die "Can't change directory to $path_execute: $!";
+			$result_execute = `$filename`;
+			if ($self->{execute_show_all}) {
+				print "\n___EXECUTE LOG___\n";
+				print $result_execute;
+				print "\n_________________\n";
+				File::writefile($filename.".log", $result_execute);
+			} else {	# show only errors
+				my $first;
+				foreach my $result_line (split /\n/, $result_execute) {
+					next if length $result_line == 0;
+					if ($first) {
+						if (grep {$result_line =~ /$_/} @operation_ok) {
+						#if ($result_line =~ /$match/) {
+							# ok
+							$first = undef;
+						} else {
+							$result_error .= $first."\n";
+							$result_error .= $result_line."\n";
+							$first = undef;
+						}
+					} else {
+						$first = $result_line;
+					}						
+				}
+				#if (length $result_error > 0) {
+				if ($result_error) {
+					print "\n___EXECUTE ERROR___\n";
+					print $result_error;
+					print "\n___________________\n";
+					File::writefile($filename."_ERROR.log", $result_error);
+				}
+			}
+		}
 	}
+	
+	##
+	### ok
+#f:\poly\HU-tp2.1>COPY TP2.1_1_rev01.csv new.csv 
+#        1 file(s) copied.
+#
+#f:\poly\HU-tp2.1>COPY TP2.1_1_rev01.csv.org new.csv.org 
+#        1 file(s) copied.
+
+
+#i:\vera6 2012\def\TH01>COPY S01.tif debla.tif 
+#        1 Datei(en) kopiert.
+#
+#i:\vera6 2012\def\TH01>COPY S02.tif intro1.tif 
+#        1 Datei(en) kopiert.
+#
+#i:\vera6 2012\def\TH01>COPY S03.tif intro2.tif 
+#        1 Datei(en) kopiert.
+
+	### not ok
+
+#F:\>COPY TP2.1_1_rev01.csv new.csv 
+#The system cannot find the file specified.
+#
+#F:\>COPY TP2.1_1_rev01.csv.org new.csv.org 
+#The system cannot find the file specified.
+
+	##
 	
 	## Zeile 1 in Spalten
 	## Zeile 2 in Spalten darunter
@@ -801,15 +887,24 @@ print "Modul excel_com.pm importiert.\n";
 }
 {
 	package Range;
+	# require Exporter;
+	# @ISA = qw(Exporter);
+	# @EXPORT = qw(guess_media_type media_suffix);
+	# @EXPORT_OK = qw(add_type add_encoding read_media_types);
+	$Range::VERSION = "0.1";
+	#Range->VERSION(0.1);
 	# nötig?
 	# ja, damit auch die Excelobjekte gehandhabt werden können (Cells, Range etc.)
 	# TODO Exceobject-Variablen nicht durch Vererbung in Range verfügbar?
 	@Range::ISA = qw(Excelobject);
+	#use base 'Excelobject'; # sets @MyCritter::ISA = ('Critter');
 	
 	sub new {
 		my $class = shift;
 		my $self = {};
 		bless($self, $class);
+		#Package::Name->can('function')
+		my $cani = $self->can('join_row');
 		return $self;
 	}
 	

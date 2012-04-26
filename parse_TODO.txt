@@ -1,0 +1,4 @@
+TODO parse_TODO:
+
+* TODO in welchem sub, scope, package
+* wenn nichts nach TODO folgt: alle Zeilen mit '#'

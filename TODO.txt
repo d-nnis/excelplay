@@ -1,6 +1,7 @@
-2012 Apr 25, 18:32:33
+2012 Apr 26, 15:25:56
 excelplay.pl
 ===========
+TODO add_cell-Problem bei Zeilen_in_1Spalte etc.
 TODO
 ===========
 
@@ -16,6 +17,7 @@ TODO auch mit cells-object nutzbar
 TODO execute gesammelt
 TODO abstrahieren, bzw. intro einer Methode immer das selbe??
 TODO parse $result_execute, catch 'konnte vom System nicht gefunden werden' o.ae.!
+TODO funktioniert trotz absolutem Pfad nicht ohne chdir?
 TODO lastlast_row
 TODO suche erste freie Zeile zum Beschreiben
 TODO lastlast_row
