@@ -4,6 +4,7 @@ use warnings;
 use feature qw(say switch);
 use Excel_lib;
 use Win32::OLE qw(in with);
+use Essent;
 
 # TODO welche Funktionen brauche ich?
 use Win32::OLE::Const 'Microsoft Excel';
@@ -95,7 +96,7 @@ print "Modul excel_com.pm importiert.\n";
 				print "$_:".$excel->Workbooks($_)->Name.",";
 			}
 			print "\n";
-			my $workb_select = main::confirm_numcount($workb_count);
+			my $workb_select = Process::confirm_numcount($workb_count);
 			$excel->Workbooks($workb_select)->Activate;
 			print "select workbook: '", $excel->Workbooks($workb_select)->Name, "'\n";
 			$self->{WORKBOOK} = $excel->Workbooks($workb_select);
@@ -113,7 +114,7 @@ print "Modul excel_com.pm importiert.\n";
 				print "$_:".$excel->Worksheets($_)->Name.",";
 			}
 			print "\n";
-			my $works_select = main::confirm_numcount($works_count);
+			my $works_select = Process::confirm_numcount($works_count);
 			## TODO: ausbauen um mit mehreren Sheets zu arbeiten
 			$self->{WORKSHEET} = $excel->Worksheets($works_select);
 			print "select worksheet: '", $excel->Worksheets($works_select)->Name, "'\n";
@@ -271,14 +272,14 @@ print "Modul excel_com.pm importiert.\n";
 		my @array = $self->readcol($row, $col);
 		my $batch_string = join "\n", @array;
 		
-		main::writefile($filename, $batch_string);
+		File::writefile($filename, $batch_string);
 		my $result_execute = '';
 		chdir($path_execute) or die "Can't change directory to $path_execute: $!";
 		if ($self->{confirm_execute}) {
 			print "Execute ", $filename, "?\n";
-			if (main::confirmJN()) {
+			if (Process::confirmJN()) {
 				$result_execute = `$filename`;
-				main::writefile($filename.".log", $result_execute);
+				File::writefile($filename.".log", $result_execute);
 				print "\n___EXECUTE LOG___\n";
 				print $result_execute;
 				print "\n_________________\n";
@@ -288,7 +289,7 @@ print "Modul excel_com.pm importiert.\n";
 			}
 		} else {
 			$result_execute = `$filename`;
-			main::writefile($filename.".log", $result_execute);
+			File::writefile($filename.".log", $result_execute);
 			print "\n___EXECUTE LOG___\n";
 			print $result_execute;
 			print "\n_________________\n";
@@ -1007,49 +1008,7 @@ print "Modul excel_com.pm importiert.\n";
 }
 
 
-sub confirm_numcount {
-	my $max = shift;
-	my $eingabe='';
-	my @exp_keys = (1..$max);
-	until (grep {$eingabe eq $_} @exp_keys) {
-		print (join ",", @exp_keys);
-		print "\n>";
-		$eingabe = <STDIN>;
-		chomp $eingabe;
-	}
-	return $eingabe+0;
-}
 
-sub writefile {
-		my $file = shift;
-		#my @lines = @_[1 .. $#_];	# alle Elemente 1 bis Ende
-		my @lines = @_;	# alle Elemente 0 bis Ende
-		print "write file ", $file;
-		if (!open (WFILE, '>', $file) ) {
-			print "\n!!! Achtung: Kann $file nicht oeffnen: $!\nNeuer Versuch Tastendruck";
-			while (<STDIN> eq '') {}
-			writefile($file, @lines);
-		}
-		open (WFILE, '>', $file);
-		print WFILE @lines;
-		print " lines: ", scalar @lines, ".\n";
-		close WFILE;
-}
-
-sub confirmJN {
-	my $eingabe='';
-	my @exp_keys = ('j','n');
-	until (grep {$eingabe eq $_} @exp_keys) {
-		print "(j)a oder (n)ein... \n>";
-		$eingabe = <STDIN>;
-		chomp $eingabe;
-	}
-	if ($eingabe eq 'j') {
-		return 1;
-	} else {
-		return 0;
-	}
-}
 
 __END__
 

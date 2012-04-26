@@ -264,6 +264,19 @@ use IO::Handle;
 		}
 	}
 	
+	sub confirm_numcount {
+		my $max = shift;
+		my $eingabe='';
+		my @exp_keys = (1..$max);
+		until (grep {$eingabe eq $_} @exp_keys) {
+			print (join ",", @exp_keys);
+			print "\n>";
+			$eingabe = <STDIN>;
+			chomp $eingabe;
+		}
+		return $eingabe+0;
+	}
+	
 	sub getTime {
 		my $sec; my $min; my $hour; my $mday; my $mon; my $year; my $wday; my $yday; my $isdst;
 		my @abbr = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );

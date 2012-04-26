@@ -3,7 +3,6 @@ use warnings;
 use excel_com;
 use feature qw/say/;
 
-#my $excelfile = "f:\\poly\\HU-tp4\\2012-03-15 Vereinsliste aktive.xlsx";
 my $excelobj = Excelobject->new();
 
 $excelobj->init();
