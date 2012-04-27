@@ -6,7 +6,7 @@ use Essent;
 my $dir = "f:\\Users\\d-nnis\\workspace\\excelplay\\";
 my $todo = $dir."TODO.txt";
 my @ignore = qw(parse_TODO.pl);
-#my @ignore = qw();
+my $delete_tmp = 1;
 
 
 my @perls;
@@ -41,9 +41,19 @@ foreach my $file (@perls) {
 	@parse_file = ();
 }
 
+
+if ($delete_tmp) {
+    my @dels = File::get_by_ext($dir, 'html');
+    foreach (@dels) {
+        if ($_ =~ /^(tmp.*\.html)/) {
+            push @parse_results, "DELETING $dir$1";
+            print "DELETING $dir$1\n";
+            unlink $dir.$1;    
+        }
+    } 
+}
+
 @parse_results = map {$_."\n"} (@parse_results);
 unshift @parse_results, Process::getTime()."\n";
-
-#my $todo_string = join "\n", @parse_results;
 
 File::writefile($todo, @parse_results);

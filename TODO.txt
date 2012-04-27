@@ -1,4 +1,4 @@
-2012 Apr 26, 15:25:56
+2012 Apr 27, 2:11:26
 excelplay.pl
 ===========
 TODO add_cell-Problem bei Zeilen_in_1Spalte etc.
@@ -14,10 +14,7 @@ TODO: bestimmtes Excel-File öffnen
 TODO: alle Excel-Threads erfassen und aufzählen/ wählen, CREATOR?
 TODO: ausbauen um mit mehreren Sheets zu arbeiten
 TODO auch mit cells-object nutzbar
-TODO execute gesammelt
 TODO abstrahieren, bzw. intro einer Methode immer das selbe??
-TODO parse $result_execute, catch 'konnte vom System nicht gefunden werden' o.ae.!
-TODO funktioniert trotz absolutem Pfad nicht ohne chdir?
 TODO lastlast_row
 TODO suche erste freie Zeile zum Beschreiben
 TODO lastlast_row
@@ -30,6 +27,12 @@ TODO: write als Range-Objekt
 TODO join_col_block
 TODO Unterscheide zwischen input als Cells-Objekt oder Zellen-Tupel (row, col)
 TODO return Range-Objekt
+TODO alternative mit for oder foreach...
+TODO: grab out of $self->{hit}
+TODO
+TODO for (@string_split) { # funzt nicht einfach so? Liest jedes mal die Anzahl Elemente?!
+TODO sub in sub funktioniert nicht!?
+TODO funktioniert trotz absolutem Pfad nicht ohne chdir?
 TODO Exceobject-Variablen nicht durch Vererbung in Range verfügbar?
 TODO: erste und letzte Cell von Range in Farbe
 TODO mit map:

@@ -2,3 +2,6 @@ TODO parse_TODO:
 
 * TODO in welchem sub, scope, package
 * wenn nichts nach TODO folgt: alle Zeilen mit '#'
+* auch wenn nach TODO etwas folgt!
+        # TODO: grab out of $self->{hit}
+        # and put in regex-match!

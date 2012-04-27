@@ -36,6 +36,7 @@ print "Modul excel_com.pm importiert.\n";
 		$self->{transpose_level} = 0;	# insert formula instead of copy values
 		$self->{confirm_execute} = 1;
 		$self->{execute_show_all} = 0;
+        $self->{check_exist} = 1;   # batch_col
 		
 		$Range->{add_cell} = 1;	# add cell before data dumping
 		$Range->{transpose_level} = 0;	# insert formula instead of copy values
@@ -241,16 +242,25 @@ print "Modul excel_com.pm importiert.\n";
 		if (!defined $row && !defined $col) {
 			$self->activecell_pos();
 			($row, $col) = @{$self->{activecell}{pos}};
-			#$readrow = $row+1;
 		}
+        my @collect_execute;
+        $self->{collect_execute} = 1;
 		while (defined $self->{WORKSHEET}->Cells($row, $col)->{'Value'}) {
-			$self->batch_col($row, $col);
+			# $path_execute, $filename, $batch_string
+            push @collect_execute, [$self->batch_col($row, $col)];
 			$col++;
 		}
-		# TODO execute gesammelt
+        die "ActiveCell is empty!" unless (@collect_execute);
+        $self->{collect_execute} = 0;
+        
+        # executes sammeln
+        my $Command = Command->new;
+        foreach (@collect_execute) {
+            my ($path_execute, $filename, $batch_string) = @$_;
+            File::writefile($filename, $batch_string);
+            $Command->execute_batch($path_execute, $filename);
+        }
 	}
-	
-	
 	
 	## batch_row
 	## lies Zellen aus und schreibe in batch
@@ -267,121 +277,29 @@ print "Modul excel_com.pm importiert.\n";
 			($row, $col) = @{$self->{activecell}{pos}};
 		}
 		my $path_execute = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
-		$row++;
+        die "ActiveCell is empty!" unless ($path_execute);
 		die "No directory: ->$path_execute<-: $!" unless (-e $path_execute);
+		$row++;
 		$path_execute =~ s/\\/\\\\/g;
 		unless ($path_execute =~ /\\\\$/) {
 			$path_execute .= "\\\\";
 		}
 		$filename = $path_execute."excel_batch.bat";
 		my @array = $self->readcol($row, $col);
+        if ($self->{check_exist}) {
+            my $Guess = Guess->new();
+            $Guess->{path} = $path_execute;
+            @array = $Guess->parse(@array);
+        }
 		my $batch_string = join "\n", @array;
-		
-		File::writefile($filename, $batch_string);
-		
-		$self->execute_batch($path_execute, $filename);
-		
-		# TODO parse $result_execute, catch 'konnte vom System nicht gefunden werden' o.ae.!
+        if ($self->{collect_execute}) {
+            return ($path_execute, $filename, $batch_string);
+        } else {
+            File::writefile($filename, $batch_string);
+            my $Command = Command->new;
+            $Command->execute_batch($path_execute, $filename);    
+        }
 	}
-	
-	sub execute_batch {
-		my $self = shift;
-		my $path_execute = shift;
-		my $filename = shift;
-		#my $result_execute = '';
-		#my $result_error = '';
-		#chdir($path_execute) or die "Can't change directory to $path_execute: $!";
-		if ($self->{confirm_execute}) {
-			print "Execute ", $filename, "?\n";
-			if (Process::confirmJN()) {
-				$self->execute($filename);
-			} else {
-				print "File not executed\n";
-			}
-		} else {
-			$self->execute($path_execute, $filename);
-			print "";
-			#execute();
-			#$result_execute = `$filename`;
-			#File::writefile($filename.".log", $result_execute);
-			#print "\n___EXECUTE LOG___\n";
-			#print $result_execute;
-			#print "\n_________________\n";
-		}
-		
-		sub execute {
-			my $self = shift;
-			my $path_execute = shift;
-			my $filename = shift;
-			my $result_execute = '';
-			my $result_error = '';
-			my @operation_ok = ("1 Datei.+kopiert", "1 file.+copied");
-			#my @operation_ok = ("1 Datei", "1 file");	# funzt
-			my $match = "1 file";
-			# TODO funktioniert trotz absolutem Pfad nicht ohne chdir?
-			chdir($path_execute) or die "Can't change directory to $path_execute: $!";
-			$result_execute = `$filename`;
-			if ($self->{execute_show_all}) {
-				print "\n___EXECUTE LOG___\n";
-				print $result_execute;
-				print "\n_________________\n";
-				File::writefile($filename.".log", $result_execute);
-			} else {	# show only errors
-				my $first;
-				foreach my $result_line (split /\n/, $result_execute) {
-					next if length $result_line == 0;
-					if ($first) {
-						if (grep {$result_line =~ /$_/} @operation_ok) {
-						#if ($result_line =~ /$match/) {
-							# ok
-							$first = undef;
-						} else {
-							$result_error .= $first."\n";
-							$result_error .= $result_line."\n";
-							$first = undef;
-						}
-					} else {
-						$first = $result_line;
-					}						
-				}
-				#if (length $result_error > 0) {
-				if ($result_error) {
-					print "\n___EXECUTE ERROR___\n";
-					print $result_error;
-					print "\n___________________\n";
-					File::writefile($filename."_ERROR.log", $result_error);
-				}
-			}
-		}
-	}
-	
-	##
-	### ok
-#f:\poly\HU-tp2.1>COPY TP2.1_1_rev01.csv new.csv 
-#        1 file(s) copied.
-#
-#f:\poly\HU-tp2.1>COPY TP2.1_1_rev01.csv.org new.csv.org 
-#        1 file(s) copied.
-
-
-#i:\vera6 2012\def\TH01>COPY S01.tif debla.tif 
-#        1 Datei(en) kopiert.
-#
-#i:\vera6 2012\def\TH01>COPY S02.tif intro1.tif 
-#        1 Datei(en) kopiert.
-#
-#i:\vera6 2012\def\TH01>COPY S03.tif intro2.tif 
-#        1 Datei(en) kopiert.
-
-	### not ok
-
-#F:\>COPY TP2.1_1_rev01.csv new.csv 
-#The system cannot find the file specified.
-#
-#F:\>COPY TP2.1_1_rev01.csv.org new.csv.org 
-#The system cannot find the file specified.
-
-	##
 	
 	## Zeile 1 in Spalten
 	## Zeile 2 in Spalten darunter
@@ -885,6 +803,188 @@ print "Modul excel_com.pm importiert.\n";
 		$self->{WORKSHEET} = $Book->Worksheets($sheet);	
 	}
 }
+
+{
+    package Guess;
+    $Guess::VERSION = "0.1";
+    #@Guess::ISA = qw(Excelobject);
+    
+	sub new {
+		my $class = shift;
+		my $self = {};
+		bless($self, $class);
+        #$self->{lib} = qw(copy move del);
+        %{$self->{lib}} = (copy=>"group2",
+                           move=>"group2",
+                           del=>"group1");
+		return $self;
+	}
+    
+    sub parse {
+        my $self = shift;
+        my @array = @_;
+        my @parsed_array;
+        # TODO alternative mit for oder foreach...
+        for (my $i = 0; $i < scalar @array; $i++) {
+            my @kes = keys %{$self->{lib}};
+            if ( my ($lib) = grep {$array[$i] =~ /^($_)/i} @kes ) {
+                # $1 nicht ?!
+                my $hit = ${$self->{lib}}{$lib};
+                $array[$i] = $self->$hit($array[$i]);
+                #print "";
+            }
+        }
+        return @array;
+    }
+    
+    ## group1: DEL
+    sub group1 {
+        my $self = shift;
+        my $string = shift;
+        $string =~ /()/;
+    }
+    
+    ## group2: COPY MOVE
+    sub group2 {
+        my $self = shift;
+        my $string = shift;
+        # COPY 2012-03-15 Vereinsliste aktive.xlsx HIGH2 tee.txt
+        my $path;
+        # TODO: grab out of $self->{hit}
+        # and put in regex-match!
+        my @hits = qw(copy move);
+        my $regex_hits = join "|", @hits;
+        # remove hit
+        #$string =~ /($regex_hits)\s(\w+.*)/i;
+        $string =~ /(copy|move)\s(\w+.*)/i;
+        my $hit = $1;
+        $string = $2;
+        my ($file1, $file2) = $self->rebuild($string);
+        return "$hit $file1 $file2";
+        # TODO
+        # COPY 2012-03-15 Vereinsliste aktive.xlsx tee.txt
+        # Endergebnis:
+        # (COPY) (2012-03-15 Vereinsliste aktive.xlsx) (tee.txt)
+        # mit " umrahmen: COPY "2012-03-15 Vereinsliste aktive.xlsx" tee.txt
+        # return
+    }
+    
+    sub rebuild {
+        # '2012-03-15'
+        # '2012-03-15 Vereinsliste'
+        # '2012-03-15 Vereinsliste aktive.xlsx' -> passt
+        my $self = shift;
+        my $string = shift;
+        my $ws = 0;
+        my @string_split = split / /, $string;
+        my $string_rebuild;
+        my $string_rest;
+        my $file_exist = 0;
+        # TODO for (@string_split) { # funzt nicht einfach so? Liest jedes mal die Anzahl Elemente?!
+        my $i = 0;
+        for (@string_split) {
+            # $string_rebuild .= shift @string_split;
+            $i++;
+            $string_rebuild .= $_;
+            if (-e $self->{path}.$string_rebuild) {
+                $file_exist = 1;
+                $string_rest = join " ", @string_split[$i..$#string_split];
+                last;
+            }
+            $string_rebuild .= " ";
+            $ws = 1;
+        }
+        die "first argument (file) does not exist!: ->$self->{path}.$string_rebuild<-" unless $file_exist;
+        die "second argument (destination) missing\n" unless $string_rest;
+        $string_rest = '"'.$string_rest.'"' if $string_rest =~ /\s/;
+        $string_rebuild = '"'.$string_rebuild.'"' if $ws;
+        return ($string_rebuild, $string_rest);
+    }
+    
+}
+
+{
+	#####
+    ## package Command
+    ## communication with (windows) system
+    #####
+    
+    package Command;
+	$Command::VERSION = "0.1";
+    # base class: Excelobject (method-scope)
+    @Command::ISA = qw(Excelobject);
+    
+	sub new {
+		my $class = shift;
+		my $self = {};
+		bless($self, $class);
+		return $self;
+	}
+    
+    # TODO sub in sub funktioniert nicht!?
+	sub execute_batch {
+		my $self = shift;
+		my $path_execute = shift;
+		my $filename = shift;
+		#my $result_execute = '';
+		#my $result_error = '';
+		#chdir($path_execute) or die "Can't change directory to $path_execute: $!";
+		if ($self->{confirm_execute}) {
+			print "Execute ", $filename, "?\n";
+			if (Process::confirmJN()) {
+				$self->execute($filename);
+			} else {
+				print "File not executed\n";
+			}
+		} else {
+			$self->execute($path_execute, $filename);
+			print "";
+		}
+		
+		sub execute {
+			my $self = shift;
+			my $path_execute = shift;
+			my $filename = shift;
+			my $result_execute = '';
+			my $result_error = '';
+			my @operation_ok = ("1 Datei.+kopiert", "1 file.+copied");
+			# TODO funktioniert trotz absolutem Pfad nicht ohne chdir?
+			chdir($path_execute) or die "Can't change directory to $path_execute: $!";
+			$result_execute = `$filename`;
+			if ($self->{execute_show_all}) {
+				print "___EXECUTE LOG: $filename ___\n";
+				print $result_execute;
+				print "_________________\n";
+				File::writefile($filename.".log", $result_execute);
+			} else {	# show only errors
+				my $first;
+				foreach my $result_line (split /\n/, $result_execute) {
+                    next unless $result_line;   # das gleiche, wie: next if length $result_line == 0;
+					if ($first) {
+						if (grep {$result_line =~ /$_/} @operation_ok) {
+							$first = undef;
+						} else {
+							$result_error .= $first."\n";
+							$result_error .= $result_line."\n";
+							$first = undef;
+						}
+					} else {
+						$first = $result_line;
+					}						
+				}
+				if ($result_error) {
+					print "\n______EXECUTE ERROR: $filename ___\n";
+					print $result_error;
+					print "_________________________\n";
+					File::writefile($filename."_ERROR.log", $result_error);
+				} else {
+                    print "EXECUTE OK: $filename\n";
+                }
+			}
+		}
+	}
+}
+
 {
 	package Range;
 	# require Exporter;

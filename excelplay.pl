@@ -15,9 +15,9 @@ $excelobj->init();
 #$excelobj->transpose_level(0);
 #$excelobj->{confirm_execute} = 0;
 
-#$excelobj->batch_col_block();
 $excelobj->{confirm_execute} = 0;
-$excelobj->batch_col();
+#$excelobj->batch_col();
+$excelobj->batch_col_block();
 
 #$excelobj->Zeilen_in_1Spalte(2,2,10,2);
 # TODO add_cell-Problem bei Zeilen_in_1Spalte etc.
