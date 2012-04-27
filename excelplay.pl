@@ -19,6 +19,7 @@ $excelobj->{confirm_execute} = 0;
 $excelobj->{dest_in_cell} = 1;
 # dest_in_cell requires check_exist
 #$excelobj->batch_col();
+# TODO wo write und execute???
 $excelobj->batch_col_block();
 
 #$excelobj->Zeilen_in_1Spalte(2,2,10,2);

@@ -248,8 +248,13 @@ print "Modul excel_com.pm importiert.\n";
         $self->{collect_execute} = 1;
 		while (defined $self->{WORKSHEET}->Cells($row, $col)->{'Value'}) {
 			# $path_execute, $filename, $batch_string
-            push @collect_execute, [$self->batch_col($row, $col)];
-			$col++;
+            if ($self->{dest_in_cell}) {
+                push @collect_execute, [$self->batch_col2($row, $col)];
+            } else {
+                push @collect_execute, [$self->batch_col($row, $col)];
+            }
+            $col++;
+			
 		}
         die "ActiveCell is empty!" unless (@collect_execute);
         $self->{collect_execute} = 0;
@@ -265,7 +270,6 @@ print "Modul excel_com.pm importiert.\n";
 	
     sub batch_col2 {
 		my $self = shift;
-		# TODO abstrahieren, bzw. intro einer Methode immer das selbe??
 		my $row = shift;
 		my $col = shift;
 		my $filename;
@@ -273,29 +277,34 @@ print "Modul excel_com.pm importiert.\n";
 			$self->activecell_pos();
 			($row, $col) = @{$self->{activecell}{pos}};
 		}
-        ## first cell
+        ## first cell: operation (copy, move etc. ?)
+        my $op = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
+        # TODO die unless grep {} @valid_opmodes oder in Guess->parse?
+        ##
+        ## second cell: base/execute path
+        $row++;
 		my $path_execute = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
         die "ActiveCell is empty!" unless ($path_execute);
         if ($self->{check_exist}) {
             die "No directory: ->$path_execute<-: $!" unless (-e $path_execute);
         }
-		$row++;
-		$path_execute =~ s/\\/\\\\/g;
+        $path_execute =~ s/\\/\\\\/g;
 		unless ($path_execute =~ /\\\\$/) {
 			$path_execute .= "\\\\";
 		}
-		$filename = $path_execute."excel_batch.bat";
-        ## if: second cell
+        ##
+        ## third cell: destination path
+		$row++;
         my $path_dest = '';
-        if ($self->{dest_in_cell}) {
-            $path_dest = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
-            $row++;
-        }
-        
+        $path_dest = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
+        ##
         ## following cells
+        $row++;
+        $filename = $path_execute."excel_batch.bat";
 		my @array = $self->readcol($row, $col);
         if ($self->{check_exist}) {
             my $Guess = Guess->new();
+            $Guess->{op} = $op;
             $Guess->{path_execute} = $path_execute;
             $Guess->{path_dest} = $path_dest;
             # surround source file with quotes (") if whitespace in filename/path
@@ -311,8 +320,6 @@ print "Modul excel_com.pm importiert.\n";
         }
 	}
 
-    
-    
 	## batch_row
 	## lies Zellen aus und schreibe in batch
 	## erste Zelle: path to execute
@@ -873,6 +880,7 @@ print "Modul excel_com.pm importiert.\n";
                            move=>"group2",
                            ren=>"group2",
                            del=>"group1");
+        $self->{path_dest} = '';    # default for batch_col2
 		return $self;
 	}
     
@@ -884,8 +892,12 @@ print "Modul excel_com.pm importiert.\n";
         for (my $i = 0; $i < scalar @array; $i++) {
             my @kes = keys %{$self->{lib}};
             if ( my ($lib) = grep {$array[$i] =~ /^($_)/i} @kes ) {
-                # $1 nicht ?!
+                # TODO parse hier: valider op-mode?
                 my $hit = ${$self->{lib}}{$lib};
+                if ($self->{op}) {
+                    $hit = $self->{op};
+                    $array[$i] = $hit." ".$array[$i];
+                }
                 $array[$i] = $self->$hit($array[$i]);
                 #print "";
             }
@@ -914,6 +926,7 @@ print "Modul excel_com.pm importiert.\n";
         #$string =~ /($regex_hits)\s(\w+.*)/i;
         $string =~ /(copy|move|ren)\s(\w+.*)/i;
         my $hit = $1;
+        $hit = $self->{op} if $self->{op};
         $string = $2;
         my ($file1, $file2) = $self->rebuild($string);
         return "$hit $file1 $file2";
