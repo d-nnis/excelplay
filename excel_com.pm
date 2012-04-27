@@ -37,6 +37,7 @@ print "Modul excel_com.pm importiert.\n";
 		$self->{confirm_execute} = 1;
 		$self->{execute_show_all} = 0;
         $self->{check_exist} = 1;   # batch_col
+        $self->{dest_in_cell} = 0;  # batch col
 		
 		$Range->{add_cell} = 1;	# add cell before data dumping
 		$Range->{transpose_level} = 0;	# insert formula instead of copy values
@@ -262,6 +263,56 @@ print "Modul excel_com.pm importiert.\n";
         }
 	}
 	
+    sub batch_col2 {
+		my $self = shift;
+		# TODO abstrahieren, bzw. intro einer Methode immer das selbe??
+		my $row = shift;
+		my $col = shift;
+		my $filename;
+		if (!defined $row && !defined $col) {
+			$self->activecell_pos();
+			($row, $col) = @{$self->{activecell}{pos}};
+		}
+        ## first cell
+		my $path_execute = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
+        die "ActiveCell is empty!" unless ($path_execute);
+        if ($self->{check_exist}) {
+            die "No directory: ->$path_execute<-: $!" unless (-e $path_execute);
+        }
+		$row++;
+		$path_execute =~ s/\\/\\\\/g;
+		unless ($path_execute =~ /\\\\$/) {
+			$path_execute .= "\\\\";
+		}
+		$filename = $path_execute."excel_batch.bat";
+        ## if: second cell
+        my $path_dest = '';
+        if ($self->{dest_in_cell}) {
+            $path_dest = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
+            $row++;
+        }
+        
+        ## following cells
+		my @array = $self->readcol($row, $col);
+        if ($self->{check_exist}) {
+            my $Guess = Guess->new();
+            $Guess->{path_execute} = $path_execute;
+            $Guess->{path_dest} = $path_dest;
+            # surround source file with quotes (") if whitespace in filename/path
+            @array = $Guess->parse(@array);
+        }
+		my $batch_string = join "\n", @array;
+        if ($self->{collect_execute}) {
+            return ($path_execute, $filename, $batch_string);
+        } else {
+            File::writefile($filename, $batch_string);
+            my $Command = Command->new;
+            $Command->execute_batch($path_execute, $filename);    
+        }
+	}
+
+    
+    
 	## batch_row
 	## lies Zellen aus und schreibe in batch
 	## erste Zelle: path to execute
@@ -276,9 +327,12 @@ print "Modul excel_com.pm importiert.\n";
 			$self->activecell_pos();
 			($row, $col) = @{$self->{activecell}{pos}};
 		}
+        ## first cell
 		my $path_execute = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
         die "ActiveCell is empty!" unless ($path_execute);
-		die "No directory: ->$path_execute<-: $!" unless (-e $path_execute);
+        if ($self->{check_exist}) {
+            die "No directory: ->$path_execute<-: $!" unless (-e $path_execute);
+        }
 		$row++;
 		$path_execute =~ s/\\/\\\\/g;
 		unless ($path_execute =~ /\\\\$/) {
@@ -288,7 +342,8 @@ print "Modul excel_com.pm importiert.\n";
 		my @array = $self->readcol($row, $col);
         if ($self->{check_exist}) {
             my $Guess = Guess->new();
-            $Guess->{path} = $path_execute;
+            $Guess->{path_execute} = $path_execute;
+            # surround source file with quotes (") if whitespace in filename/path
             @array = $Guess->parse(@array);
         }
 		my $batch_string = join "\n", @array;
@@ -816,6 +871,7 @@ print "Modul excel_com.pm importiert.\n";
         #$self->{lib} = qw(copy move del);
         %{$self->{lib}} = (copy=>"group2",
                            move=>"group2",
+                           ren=>"group2",
                            del=>"group1");
 		return $self;
 	}
@@ -837,14 +893,14 @@ print "Modul excel_com.pm importiert.\n";
         return @array;
     }
     
-    ## group1: DEL
+    ## TODO group1: DEL
     sub group1 {
         my $self = shift;
         my $string = shift;
         $string =~ /()/;
     }
     
-    ## group2: COPY MOVE
+    ## group2: COPY MOVE REN
     sub group2 {
         my $self = shift;
         my $string = shift;
@@ -852,11 +908,11 @@ print "Modul excel_com.pm importiert.\n";
         my $path;
         # TODO: grab out of $self->{hit}
         # and put in regex-match!
-        my @hits = qw(copy move);
+        my @hits = qw(copy move ren);
         my $regex_hits = join "|", @hits;
         # remove hit
         #$string =~ /($regex_hits)\s(\w+.*)/i;
-        $string =~ /(copy|move)\s(\w+.*)/i;
+        $string =~ /(copy|move|ren)\s(\w+.*)/i;
         my $hit = $1;
         $string = $2;
         my ($file1, $file2) = $self->rebuild($string);
@@ -886,7 +942,7 @@ print "Modul excel_com.pm importiert.\n";
             # $string_rebuild .= shift @string_split;
             $i++;
             $string_rebuild .= $_;
-            if (-e $self->{path}.$string_rebuild) {
+            if (-e $self->{path_execute}.$string_rebuild) {
                 $file_exist = 1;
                 $string_rest = join " ", @string_split[$i..$#string_split];
                 last;
@@ -894,8 +950,9 @@ print "Modul excel_com.pm importiert.\n";
             $string_rebuild .= " ";
             $ws = 1;
         }
-        die "first argument (file) does not exist!: ->$self->{path}.$string_rebuild<-" unless $file_exist;
+        die "first argument (file) does not exist!: ->$self->{path_execute}.$string_rebuild<-" unless $file_exist;
         die "second argument (destination) missing\n" unless $string_rest;
+        $string_rest = $self->{path_dest}.$string_rest;
         $string_rest = '"'.$string_rest.'"' if $string_rest =~ /\s/;
         $string_rebuild = '"'.$string_rebuild.'"' if $ws;
         return ($string_rebuild, $string_rest);
