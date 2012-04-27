@@ -2,14 +2,38 @@
 <!-- Komodo Project File - DO NOT EDIT -->
 <project id="f1c5f86f-f8c1-45f4-86cb-e3e3cedf698d" kpf_version="5" name="Excelplay.komodoproject">
 <preference-set idref="f1c5f86f-f8c1-45f4-86cb-e3e3cedf698d">
+  <boolean id="dedentOnColon">0</boolean>
+  <string id="editAutoIndentStyle">smart</string>
+  <long id="editAutoWrapColumn">80</long>
+  <boolean id="editBackspaceDedents">1</boolean>
+  <boolean id="editElectricBrace">1</boolean>
+  <boolean id="editFoldLines">1</boolean>
+  <string id="editFoldStyle">squaretree</string>
+  <boolean id="editRestoreFoldPoints">0</boolean>
+  <boolean id="editSmartCutCopyWithoutSelection">1</boolean>
+  <boolean id="editSmartSoftCharacters">1</boolean>
+  <boolean id="editTabCompletes">1</boolean>
+  <boolean id="editUseEdge">1</boolean>
+  <long id="editWordWrapIndentation">0</long>
+  <long id="editWordWrapMarker">0</long>
+  <long id="editWrapType">0</long>
+  <boolean id="enableSmartSoftCharactersInsideLine">0</boolean>
+  <boolean id="hyperlinksEnableGotoDefinition">1</boolean>
+  <boolean id="hyperlinksEnabled">1</boolean>
   <boolean id="import_live">1</boolean>
+  <boolean id="indentStringsAfterParens">0</boolean>
+  <long id="indentWidth">4</long>
   <string id="perlDefaultInterpreter">C:\Perl\bin\perl.exe</string>
   <string id="perlExtraPaths"></string>
   <boolean id="perl_debuggerlogenabled">1</boolean>
   <string id="perl_debuggerlogpath">C:\perl_debug</string>
   <boolean id="perl_lintOption_includeCurrentDirForLinter">1</boolean>
+  <boolean id="showIndentationGuides">1</boolean>
+  <long id="tabWidth">4</long>
   <string id="tclExtraPaths"></string>
   <string id="tclshDefaultInterpreter"></string>
+  <boolean id="useSmartTabs">1</boolean>
+  <boolean id="useTabs">0</boolean>
   <string id="wishDefaultInterpreter"></string>
 </preference-set>
 </project>

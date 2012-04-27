@@ -3,21 +3,25 @@ use warnings;
 use excel_com;
 use feature qw/say/;
 
-#my $excelfile = "f:\\poly\\HU-tp4\\2012-03-15 Vereinsliste aktive.xlsx";
+#chdir("f:\\Users\\d-nnis\\workspace\\excelplay") or die "Can't change directory: $!";
 my $excelobj = Excelobject->new();
 
 $excelobj->init();
 #$excelobj->init($excelfile,4);
+
 
 ## settings
 #$excelobj->add_cell(0);
 #$excelobj->transpose_level(0);
 #$excelobj->{confirm_execute} = 0;
 
-$excelobj->batch_col_block();
+$excelobj->{confirm_execute} = 0;
 #$excelobj->batch_col();
+$excelobj->batch_col_block();
 
 #$excelobj->Zeilen_in_1Spalte(2,2,10,2);
+# TODO add_cell-Problem bei Zeilen_in_1Spalte etc.
+#$excelobj->add_cell(0);
 #$excelobj->Zeilen_in_1Spalte();
 #$excelobj->Spalten_in_1Zeile();
 

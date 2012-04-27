@@ -4,6 +4,7 @@ use warnings;
 use feature qw(say switch);
 use Excel_lib;
 use Win32::OLE qw(in with);
+use Essent;
 
 # TODO welche Funktionen brauche ich?
 use Win32::OLE::Const 'Microsoft Excel';
@@ -20,6 +21,7 @@ print "Modul excel_com.pm importiert.\n";
 
 {
 	package Excelobject;
+	$Excelobject::VERSION = "0.5";
 	#@Excelobject::ISA = qw(Range);
 	
 	sub new {
@@ -33,6 +35,8 @@ print "Modul excel_com.pm importiert.\n";
 		$self->{add_cell} = 1;	# add cell before data dumping
 		$self->{transpose_level} = 0;	# insert formula instead of copy values
 		$self->{confirm_execute} = 1;
+		$self->{execute_show_all} = 0;
+        $self->{check_exist} = 1;   # batch_col
 		
 		$Range->{add_cell} = 1;	# add cell before data dumping
 		$Range->{transpose_level} = 0;	# insert formula instead of copy values
@@ -95,7 +99,7 @@ print "Modul excel_com.pm importiert.\n";
 				print "$_:".$excel->Workbooks($_)->Name.",";
 			}
 			print "\n";
-			my $workb_select = main::confirm_numcount($workb_count);
+			my $workb_select = Process::confirm_numcount($workb_count);
 			$excel->Workbooks($workb_select)->Activate;
 			print "select workbook: '", $excel->Workbooks($workb_select)->Name, "'\n";
 			$self->{WORKBOOK} = $excel->Workbooks($workb_select);
@@ -113,7 +117,7 @@ print "Modul excel_com.pm importiert.\n";
 				print "$_:".$excel->Worksheets($_)->Name.",";
 			}
 			print "\n";
-			my $works_select = main::confirm_numcount($works_count);
+			my $works_select = Process::confirm_numcount($works_count);
 			## TODO: ausbauen um mit mehreren Sheets zu arbeiten
 			$self->{WORKSHEET} = $excel->Worksheets($works_select);
 			print "select worksheet: '", $excel->Worksheets($works_select)->Name, "'\n";
@@ -238,13 +242,24 @@ print "Modul excel_com.pm importiert.\n";
 		if (!defined $row && !defined $col) {
 			$self->activecell_pos();
 			($row, $col) = @{$self->{activecell}{pos}};
-			#$readrow = $row+1;
 		}
+        my @collect_execute;
+        $self->{collect_execute} = 1;
 		while (defined $self->{WORKSHEET}->Cells($row, $col)->{'Value'}) {
-			$self->batch_col($row, $col);
+			# $path_execute, $filename, $batch_string
+            push @collect_execute, [$self->batch_col($row, $col)];
 			$col++;
 		}
-		# TODO execute gesammelt
+        die "ActiveCell is empty!" unless (@collect_execute);
+        $self->{collect_execute} = 0;
+        
+        # executes sammeln
+        my $Command = Command->new;
+        foreach (@collect_execute) {
+            my ($path_execute, $filename, $batch_string) = @$_;
+            File::writefile($filename, $batch_string);
+            $Command->execute_batch($path_execute, $filename);
+        }
 	}
 	
 	## batch_row
@@ -262,6 +277,8 @@ print "Modul excel_com.pm importiert.\n";
 			($row, $col) = @{$self->{activecell}{pos}};
 		}
 		my $path_execute = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
+        die "ActiveCell is empty!" unless ($path_execute);
+		die "No directory: ->$path_execute<-: $!" unless (-e $path_execute);
 		$row++;
 		$path_execute =~ s/\\/\\\\/g;
 		unless ($path_execute =~ /\\\\$/) {
@@ -269,31 +286,19 @@ print "Modul excel_com.pm importiert.\n";
 		}
 		$filename = $path_execute."excel_batch.bat";
 		my @array = $self->readcol($row, $col);
+        if ($self->{check_exist}) {
+            my $Guess = Guess->new();
+            $Guess->{path} = $path_execute;
+            @array = $Guess->parse(@array);
+        }
 		my $batch_string = join "\n", @array;
-		
-		main::writefile($filename, $batch_string);
-		my $result_execute = '';
-		chdir($path_execute) or die "Can't change directory to $path_execute: $!";
-		if ($self->{confirm_execute}) {
-			print "Execute ", $filename, "?\n";
-			if (main::confirmJN()) {
-				$result_execute = `$filename`;
-				main::writefile($filename.".log", $result_execute);
-				print "\n___EXECUTE LOG___\n";
-				print $result_execute;
-				print "\n_________________\n";
-				
-			} else {
-				print "File not executed\n";
-			}
-		} else {
-			$result_execute = `$filename`;
-			main::writefile($filename.".log", $result_execute);
-			print "\n___EXECUTE LOG___\n";
-			print $result_execute;
-			print "\n_________________\n";
-		}
-		# TODO parse $result_execute, catch 'konnte vom System nicht gefunden werden' o.ae.!
+        if ($self->{collect_execute}) {
+            return ($path_execute, $filename, $batch_string);
+        } else {
+            File::writefile($filename, $batch_string);
+            my $Command = Command->new;
+            $Command->execute_batch($path_execute, $filename);    
+        }
 	}
 	
 	## Zeile 1 in Spalten
@@ -798,17 +803,208 @@ print "Modul excel_com.pm importiert.\n";
 		$self->{WORKSHEET} = $Book->Worksheets($sheet);	
 	}
 }
+
+{
+    package Guess;
+    $Guess::VERSION = "0.1";
+    #@Guess::ISA = qw(Excelobject);
+    
+	sub new {
+		my $class = shift;
+		my $self = {};
+		bless($self, $class);
+        #$self->{lib} = qw(copy move del);
+        %{$self->{lib}} = (copy=>"group2",
+                           move=>"group2",
+                           del=>"group1");
+		return $self;
+	}
+    
+    sub parse {
+        my $self = shift;
+        my @array = @_;
+        my @parsed_array;
+        # TODO alternative mit for oder foreach...
+        for (my $i = 0; $i < scalar @array; $i++) {
+            my @kes = keys %{$self->{lib}};
+            if ( my ($lib) = grep {$array[$i] =~ /^($_)/i} @kes ) {
+                # $1 nicht ?!
+                my $hit = ${$self->{lib}}{$lib};
+                $array[$i] = $self->$hit($array[$i]);
+                #print "";
+            }
+        }
+        return @array;
+    }
+    
+    ## group1: DEL
+    sub group1 {
+        my $self = shift;
+        my $string = shift;
+        $string =~ /()/;
+    }
+    
+    ## group2: COPY MOVE
+    sub group2 {
+        my $self = shift;
+        my $string = shift;
+        # COPY 2012-03-15 Vereinsliste aktive.xlsx HIGH2 tee.txt
+        my $path;
+        # TODO: grab out of $self->{hit}
+        # and put in regex-match!
+        my @hits = qw(copy move);
+        my $regex_hits = join "|", @hits;
+        # remove hit
+        #$string =~ /($regex_hits)\s(\w+.*)/i;
+        $string =~ /(copy|move)\s(\w+.*)/i;
+        my $hit = $1;
+        $string = $2;
+        my ($file1, $file2) = $self->rebuild($string);
+        return "$hit $file1 $file2";
+        # TODO
+        # COPY 2012-03-15 Vereinsliste aktive.xlsx tee.txt
+        # Endergebnis:
+        # (COPY) (2012-03-15 Vereinsliste aktive.xlsx) (tee.txt)
+        # mit " umrahmen: COPY "2012-03-15 Vereinsliste aktive.xlsx" tee.txt
+        # return
+    }
+    
+    sub rebuild {
+        # '2012-03-15'
+        # '2012-03-15 Vereinsliste'
+        # '2012-03-15 Vereinsliste aktive.xlsx' -> passt
+        my $self = shift;
+        my $string = shift;
+        my $ws = 0;
+        my @string_split = split / /, $string;
+        my $string_rebuild;
+        my $string_rest;
+        my $file_exist = 0;
+        # TODO for (@string_split) { # funzt nicht einfach so? Liest jedes mal die Anzahl Elemente?!
+        my $i = 0;
+        for (@string_split) {
+            # $string_rebuild .= shift @string_split;
+            $i++;
+            $string_rebuild .= $_;
+            if (-e $self->{path}.$string_rebuild) {
+                $file_exist = 1;
+                $string_rest = join " ", @string_split[$i..$#string_split];
+                last;
+            }
+            $string_rebuild .= " ";
+            $ws = 1;
+        }
+        die "first argument (file) does not exist!: ->$self->{path}.$string_rebuild<-" unless $file_exist;
+        die "second argument (destination) missing\n" unless $string_rest;
+        $string_rest = '"'.$string_rest.'"' if $string_rest =~ /\s/;
+        $string_rebuild = '"'.$string_rebuild.'"' if $ws;
+        return ($string_rebuild, $string_rest);
+    }
+    
+}
+
+{
+	#####
+    ## package Command
+    ## communication with (windows) system
+    #####
+    
+    package Command;
+	$Command::VERSION = "0.1";
+    # base class: Excelobject (method-scope)
+    @Command::ISA = qw(Excelobject);
+    
+	sub new {
+		my $class = shift;
+		my $self = {};
+		bless($self, $class);
+		return $self;
+	}
+    
+    # TODO sub in sub funktioniert nicht!?
+	sub execute_batch {
+		my $self = shift;
+		my $path_execute = shift;
+		my $filename = shift;
+		#my $result_execute = '';
+		#my $result_error = '';
+		#chdir($path_execute) or die "Can't change directory to $path_execute: $!";
+		if ($self->{confirm_execute}) {
+			print "Execute ", $filename, "?\n";
+			if (Process::confirmJN()) {
+				$self->execute($filename);
+			} else {
+				print "File not executed\n";
+			}
+		} else {
+			$self->execute($path_execute, $filename);
+			print "";
+		}
+		
+		sub execute {
+			my $self = shift;
+			my $path_execute = shift;
+			my $filename = shift;
+			my $result_execute = '';
+			my $result_error = '';
+			my @operation_ok = ("1 Datei.+kopiert", "1 file.+copied");
+			# TODO funktioniert trotz absolutem Pfad nicht ohne chdir?
+			chdir($path_execute) or die "Can't change directory to $path_execute: $!";
+			$result_execute = `$filename`;
+			if ($self->{execute_show_all}) {
+				print "___EXECUTE LOG: $filename ___\n";
+				print $result_execute;
+				print "_________________\n";
+				File::writefile($filename.".log", $result_execute);
+			} else {	# show only errors
+				my $first;
+				foreach my $result_line (split /\n/, $result_execute) {
+                    next unless $result_line;   # das gleiche, wie: next if length $result_line == 0;
+					if ($first) {
+						if (grep {$result_line =~ /$_/} @operation_ok) {
+							$first = undef;
+						} else {
+							$result_error .= $first."\n";
+							$result_error .= $result_line."\n";
+							$first = undef;
+						}
+					} else {
+						$first = $result_line;
+					}						
+				}
+				if ($result_error) {
+					print "\n______EXECUTE ERROR: $filename ___\n";
+					print $result_error;
+					print "_________________________\n";
+					File::writefile($filename."_ERROR.log", $result_error);
+				} else {
+                    print "EXECUTE OK: $filename\n";
+                }
+			}
+		}
+	}
+}
+
 {
 	package Range;
+	# require Exporter;
+	# @ISA = qw(Exporter);
+	# @EXPORT = qw(guess_media_type media_suffix);
+	# @EXPORT_OK = qw(add_type add_encoding read_media_types);
+	$Range::VERSION = "0.1";
+	#Range->VERSION(0.1);
 	# nötig?
 	# ja, damit auch die Excelobjekte gehandhabt werden können (Cells, Range etc.)
 	# TODO Exceobject-Variablen nicht durch Vererbung in Range verfügbar?
 	@Range::ISA = qw(Excelobject);
+	#use base 'Excelobject'; # sets @MyCritter::ISA = ('Critter');
 	
 	sub new {
 		my $class = shift;
 		my $self = {};
 		bless($self, $class);
+		#Package::Name->can('function')
+		my $cani = $self->can('join_row');
 		return $self;
 	}
 	
@@ -1007,49 +1203,7 @@ print "Modul excel_com.pm importiert.\n";
 }
 
 
-sub confirm_numcount {
-	my $max = shift;
-	my $eingabe='';
-	my @exp_keys = (1..$max);
-	until (grep {$eingabe eq $_} @exp_keys) {
-		print (join ",", @exp_keys);
-		print "\n>";
-		$eingabe = <STDIN>;
-		chomp $eingabe;
-	}
-	return $eingabe+0;
-}
 
-sub writefile {
-		my $file = shift;
-		#my @lines = @_[1 .. $#_];	# alle Elemente 1 bis Ende
-		my @lines = @_;	# alle Elemente 0 bis Ende
-		print "write file ", $file;
-		if (!open (WFILE, '>', $file) ) {
-			print "\n!!! Achtung: Kann $file nicht oeffnen: $!\nNeuer Versuch Tastendruck";
-			while (<STDIN> eq '') {}
-			writefile($file, @lines);
-		}
-		open (WFILE, '>', $file);
-		print WFILE @lines;
-		print " lines: ", scalar @lines, ".\n";
-		close WFILE;
-}
-
-sub confirmJN {
-	my $eingabe='';
-	my @exp_keys = ('j','n');
-	until (grep {$eingabe eq $_} @exp_keys) {
-		print "(j)a oder (n)ein... \n>";
-		$eingabe = <STDIN>;
-		chomp $eingabe;
-	}
-	if ($eingabe eq 'j') {
-		return 1;
-	} else {
-		return 0;
-	}
-}
 
 __END__
 
