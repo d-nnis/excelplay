@@ -5,7 +5,8 @@ use Essent;
 my $dir = "c:\\Dokumente und Einstellungen\\huesemann.POLYINTERN\\Eigene Dateien\\workspace\\excelplay\\";
 my $todo = $dir."TODO.txt";
 my @ignore = qw(parse_TODO.pl);
-#my @ignore = qw();
+# präzise genug
+# Ende von Package und sub nicht erkannt
 
 
 my @perls;
@@ -15,18 +16,40 @@ push @perls, File::get_by_ext($dir, 'pm');
 ### parse each file
 my @parse_file;
 my $file_to_sign = 0;
+my $follow_line = 0;
 my @parse_results;
-
-# TODO add line-number
-# no file_signed, if no TODO at all
+my $line_number;
+my $package = '';
+my $sub = '';
+my %context = ();
+my $context_sign = '';
 
 foreach my $file (@perls) {
 	next if grep {$file =~ /$_/ } @ignore;
 	my @filecontent = File::readfile($file);
+	$line_number = 0;
+	$package = '';
+	$sub = '';
 	foreach my $line (@filecontent) {
+		$line_number++;
+		$package = ("$line_number: ".$1) if $line =~ /\s*(package\s\w+)\s*;$/;
+		$sub = ("$line_number: ".$1) if $line =~ /\s*(sub\s\w+)\s*{$/;
+		$context_sign = $package."-".$sub;
+		
+		unless ($context{$context_sign})  {
+			$context{$context_sign} = 0;
+		}
 		if ($line =~ /(TODO.*)/) {
-			push @parse_file, Data::remove_ws $1;
+			push @parse_file, $context_sign if $context{$context_sign} == 0 && length $context_sign > 1;
+			$context{$context_sign} = 1;
+			push @parse_file, "$line_number: ".Data::remove_ws $1;
 			$file_to_sign = 1;
+			$follow_line = 1;
+		} elsif ($line =~ /\s*#+\s\w/ && $follow_line) {
+			# push if '   # irgendwas'
+			push @parse_file, "$line_number: ".Data::remove_ws $line;
+		} else {
+			$follow_line = 0;
 		}
 	}
 	if ($file_to_sign) {

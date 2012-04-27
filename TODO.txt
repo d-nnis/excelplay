@@ -1,40 +1,61 @@
-2012 Apr 25, 18:32:33
+2012 Apr 27, 15:20:10
 excelplay.pl
 ===========
-TODO
+28: TODO
+29: # regex, und regexp -handling vereinheitlichn
 ===========
 
 excel_com.pm
 ===========
-TODO welche Funktionen brauche ich?
-TODO Welche Konstanten sind mir dadurch zugänglich?
-TODO: test, wenn keine Excel-Instanz laeuft etc.
-TODO: bestimmtes Excel-File öffnen
-TODO: alle Excel-Threads erfassen und aufzählen/ wählen, CREATOR?
-TODO: ausbauen um mit mehreren Sheets zu arbeiten
-TODO auch mit cells-object nutzbar
-TODO execute gesammelt
-TODO abstrahieren, bzw. intro einer Methode immer das selbe??
-TODO parse $result_execute, catch 'konnte vom System nicht gefunden werden' o.ae.!
-TODO lastlast_row
-TODO suche erste freie Zeile zum Beschreiben
-TODO lastlast_row
-TODO suche erste freie Zeile zum Beschreiben
-TODO auch mit Range-Object verwendbar machen?
-TODO finde letzte Zelle und lies als Range - schneller?
-TODO row als array einmal einlesen - schneller??
-TODO
-TODO: write als Range-Objekt
-TODO join_col_block
-TODO Unterscheide zwischen input als Cells-Objekt oder Zellen-Tupel (row, col)
-TODO return Range-Objekt
-TODO Exceobject-Variablen nicht durch Vererbung in Range verfügbar?
-TODO: erste und letzte Cell von Range in Farbe
-TODO mit map:
+8: TODO welche Funktionen brauche ich?
+10: TODO Welche Konstanten sind mir dadurch zugänglich?
+22: package Excelobject-45: sub init
+49: TODO: test, wenn keine Excel-Instanz laeuft etc.
+50: TODO: bestimmtes Excel-File öffnen
+51: TODO: alle Excel-Threads erfassen und aufzählen/ wählen, CREATOR?
+52: # You can also directly attach your program to an already running OLE server:
+117: TODO: ausbauen um mit mehreren Sheets zu arbeiten
+22: package Excelobject-156: sub activecell_val
+167: TODO auch mit cells-object nutzbar
+22: package Excelobject-234: sub batch_col_block
+247: TODO execute gesammelt
+22: package Excelobject-254: sub batch_col
+256: TODO abstrahieren, bzw. intro einer Methode immer das selbe??
+296: TODO parse $result_execute, catch 'konnte vom System nicht gefunden werden' o.ae.!
+22: package Excelobject-305: sub Zeilen_in_1Spalte
+317: TODO lastlast_row
+318: TODO suche erste freie Zeile zum Beschreiben
+22: package Excelobject-355: sub Spalten_in_1Zeile
+367: TODO lastlast_row
+368: TODO suche erste freie Zeile zum Beschreiben
+22: package Excelobject-423: sub last_col
+434: TODO auch mit Range-Object verwendbar machen?
+22: package Excelobject-435: sub readcol
+441: TODO finde letzte Zelle und lies als Range - schneller?
+22: package Excelobject-511: sub readrow
+518: TODO row als array einmal einlesen - schneller??
+22: package Excelobject-528: sub join_row
+556: TODO
+22: package Excelobject-561: sub join_row_block
+582: TODO: write als Range-Objekt
+583: # default: add_col, write in  col+1
+590: TODO join_col_block
+22: package Excelobject-605: sub R1toA1
+607: TODO Unterscheide zwischen input als Cells-Objekt oder Zellen-Tupel (row, col)
+615: TODO return Range-Objekt
+802: package Range-780: sub init_Excelfile
+805: TODO Exceobject-Variablen nicht durch Vererbung in Range verfügbar?
+802: package Range-815: sub range
+825: TODO: erste und letzte Cell von Range in Farbe
+826: ## write_range
+827: ## braucht: $Range->{RANGE_START}
+802: package Range-828: sub write_range
+835: TODO mit map:
 ===========
 
 excel_lib.pm
 ===========
-TODO A1-Format via Excel-Funktion
+8: package Excellib-
+13: TODO A1-Format via Excel-Funktion
 ===========
 
