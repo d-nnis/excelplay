@@ -19,12 +19,13 @@ $excelobj->init();
 # dest_in_cell requires check_exist
 
 $excelobj->{confirm_execute} = 0;
-$excelobj->{dest_in_cell} = 1;
+#$excelobj->{dest_in_cell} = 1;
 # dest_in_cell requires check_exist
+# $self->{execute_Command} requires check_exist
 #$excelobj->batch_col();
 # TODO wo write und execute???
 # VER 1
-$excelobj->batch_col_block();
+#$excelobj->batch_col_block();
 
 # TODO VER 2: source und dest in getrenntem col
 #copy	

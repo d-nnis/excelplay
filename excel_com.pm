@@ -38,6 +38,7 @@ print "Modul excel_com.pm importiert.\n";
 		$self->{execute_show_all} = 0;
         $self->{check_exist} = 1;   # batch_col
         $self->{dest_in_cell} = 0;  # batch col
+        $self->{execute_Command} = 1;
 		
 		$Range->{add_cell} = 1;	# add cell before data dumping
 		$Range->{transpose_level} = 0;	# insert formula instead of copy values
@@ -46,6 +47,16 @@ print "Modul excel_com.pm importiert.\n";
 		return $self;
 	}
 	
+    # TODO
+    sub handle_settings {
+        my $self = shift;
+        if ($self->{execute_Command}) {
+            $self->{check_exist} = 1;
+        }
+        # dest_in_cell requires check_exist
+        # $self->{execute_Command} requires check_exist
+    }
+    
 	# save copy nach Auswahl des workbooks
 	sub init {
 		my $self = shift;
@@ -235,7 +246,18 @@ print "Modul excel_com.pm importiert.\n";
 			default {}
 		}
 	}
-	
+	## VER 1
+    # col1                  # col2
+    #i:\vera6 2012\def\TH01	i:\vera6 2012\def\TH02
+    #COPY S01.tif debla.tif	COPY S01.tif debla.tif
+    #COPY S02.tif intro1.tif	COPY S02.tif intro1.tif
+    #COPY S03.tif intro2.tif	COPY S03.tif intro2.tif
+    #COPY S04.tif stopp1.tif	COPY S04.tif stopp1.tif
+    #COPY S05.tif VZ008_1.tif	COPY S05.tif VZ008_1.tif
+    #COPY S06.tif VZ008_2.tif	COPY S06.tif VZ008_2.tif
+    #COPY S07.tif VZ008_3.tif	COPY S07.tif VZ008_3.tif
+    #COPY S08.tif VZ008_4.tif	COPY S08.tif VZ008_4.tif
+
 	sub batch_col_block {
 		my $self = shift;
 		my $row = shift;
@@ -264,61 +286,123 @@ print "Modul excel_com.pm importiert.\n";
         foreach (@collect_execute) {
             my ($path_execute, $filename, $batch_string) = @$_;
             File::writefile($filename, $batch_string);
-            $Command->execute_batch($path_execute, $filename);
+            $Command->execute_batch($path_execute, $filename) if $self->{execute_Command};
         }
 	}
-	
-    sub batch_col2 {
+    ## batch_col_block_VER2
+    # col1      # col2      # col3  # col4
+    # copy		            copy	
+    #f:\poly\TH\TH01\	.	f:\poly\TH\TH02	cache
+    #S01.tif	debla.tif	S01.tif	debla.tif
+    #S02.tif	intro1.tif	S02.tif	intro1.tif
+    #S03.tif	intro2.tif	S03.tif	intro2.tif
+    #S04.tif	stopp1.tif	S04.tif	stopp1.tif   
+	sub batch_col_block_VER2 {
 		my $self = shift;
 		my $row = shift;
 		my $col = shift;
-		my $filename;
 		if (!defined $row && !defined $col) {
 			$self->activecell_pos();
 			($row, $col) = @{$self->{activecell}{pos}};
 		}
+        my @collect_execute;
+        $self->{collect_execute} = 1;
+		while (defined $self->{WORKSHEET}->Cells($row, $col)->{'Value'}) {
+			# $path_execute, $filename, $batch_string
+            push @collect_execute, [$self->batch_col_VER2($row, $col)];
+            $col = $col+2;
+			
+		}
+        die "ActiveCell is empty!" unless (@collect_execute);
+        $self->{collect_execute} = 0;
+        
+        # executes sammeln
+        my $Command = Command->new;
+        foreach (@collect_execute) {
+            my ($path_execute, $filename, $batch_string) = @$_;
+            File::writefile($filename, $batch_string);
+            $Command->execute_batch($path_execute, $filename) if $self->{execute_Command};
+        }
+	}
+
+    ## batch_col_VER2
+    # col1      # col2   
+    # copy		         
+    #f:\poly\TH\TH01\	.
+    #S01.tif	debla.tif
+    #S02.tif	intro1.tif
+    #S03.tif	intro2.tif
+    #S04.tif	stopp1.tif
+    sub batch_col_VER2 {
+		my $self = shift;
+		my $row_start = shift;
+		my $col_start = shift;
+		if (!defined $row_start && !defined $col_start) {
+			$self->activecell_pos();
+			($row_start, $col_start) = @{$self->{activecell}{pos}};
+		}
+        my $row = $row_start;
+        my $col = $col_start;
         ## first cell: operation (copy, move etc. ?)
-        my $op = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
-        # TODO die unless grep {} @valid_opmodes oder in Guess->parse?
+        my $op = Data::remove_ws $self->{WORKSHEET}->Cells($row_start, $col_start)->{'Value'};
+        # TODO if $op eq 'del'
+        my $Command = Command->new;
+        warn "Command '$op' not valid?!" unless $Command->is_valid($op);
         ##
         ## second cell: base/execute path
-        $row++;
-		my $path_execute = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
-        die "ActiveCell is empty!" unless ($path_execute);
-        if ($self->{check_exist}) {
-            die "No directory: ->$path_execute<-: $!" unless (-e $path_execute);
-        }
-        $path_execute =~ s/\\/\\\\/g;
-		unless ($path_execute =~ /\\\\$/) {
-			$path_execute .= "\\\\";
-		}
+        #$row++;
+		my $path_source = $self->{WORKSHEET}->Cells($row_start+1, $col)->{'Value'};
+        die "ActiveCell is empty!" unless ($path_source);
+        die "'$path_source': $!" unless (-e $path_source) && $self->{check_exist};
+        #$path_source =~ s/\\/\\\\/g;
+		$path_source .= "\\" unless $path_source =~ /\\$/;
         ##
         ## third cell: destination path
-		$row++;
-        my $path_dest = '';
-        $path_dest = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
+        #$row++;
+        my $path_dest = $self->{WORKSHEET}->Cells($row_start+1, $col_start+1)->{'Value'};
+        if ($path_dest) {
+            #$path_dest =~ s/\\/\\\\/g;
+            $path_dest .= "\\" unless $path_dest =~ /\\$/;
+        } else {
+            $path_dest = ".\\";
+        }
         ##
         ## following cells
-        $row++;
-        $filename = $path_execute."excel_batch.bat";
-		my @array = $self->readcol($row, $col);
-        if ($self->{check_exist}) {
-            my $Guess = Guess->new();
-            $Guess->{op} = $op;
-            $Guess->{path_execute} = $path_execute;
-            $Guess->{path_dest} = $path_dest;
-            # surround source file with quotes (") if whitespace in filename/path
-            @array = $Guess->parse(@array);
+        #$row++;
+        my $filename = $path_source."excel_batch.bat";
+		my @source_file = $self->readcol($row_start+2, $col);
+        my @dest_file = $self->readcol($row_start+2, $col+1);
+        die "source- & dest-columns not equally long" if scalar @source_file != scalar @dest_file;
+        my @array;
+        foreach my $i (0 .. $#source_file) {
+            my $source = $path_source.$source_file[$i];
+            $source = '"'.$source.'"' if $source =~ /\s/;
+            my $dest = $path_dest.$dest_file[$i];
+            $dest = '"'.$dest.'"' if $dest =~ /\s/;
+            if ($self->{check_exist}) {
+                die "source does not exist '$source'\n" unless -e $source;
+                # nur einmal überprüfen!? Performance
+                if ($path_dest =~ /^\w:\\/) {
+                    # TODO mit Cwd?
+                    # absolute path
+                    # funktioniert nicht mit \\filer1\ etc
+                    die "destination-path: $! '$path_dest' " unless -e $path_dest;
+                } else {
+                    # relative path
+                    die "destination-path: $! '$path_source.$path_dest' " unless -e $path_source.$path_dest;
+                }
+            }
+            push @array, "$op $source $dest";
         }
 		my $batch_string = join "\n", @array;
         if ($self->{collect_execute}) {
-            return ($path_execute, $filename, $batch_string);
+            return ($path_source, $filename, $batch_string);
         } else {
             File::writefile($filename, $batch_string);
             my $Command = Command->new;
-            $Command->execute_batch($path_execute, $filename);    
+            $Command->execute_batch($path_source, $filename) if $self->{execute_Command};
         }
-	}
+	}  
 
 	## batch_row
 	## lies Zellen aus und schreibe in batch
@@ -338,7 +422,7 @@ print "Modul excel_com.pm importiert.\n";
 		my $path_execute = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
         die "ActiveCell is empty!" unless ($path_execute);
         if ($self->{check_exist}) {
-            die "No directory: ->$path_execute<-: $!" unless (-e $path_execute);
+            die "'$path_execute': $!" unless (-e $path_execute);
         }
 		$row++;
 		$path_execute =~ s/\\/\\\\/g;
@@ -359,7 +443,7 @@ print "Modul excel_com.pm importiert.\n";
         } else {
             File::writefile($filename, $batch_string);
             my $Command = Command->new;
-            $Command->execute_batch($path_execute, $filename);    
+            $Command->execute_batch($path_execute, $filename) if $self->{execute_Command};
         }
 	}
 	
@@ -737,7 +821,6 @@ print "Modul excel_com.pm importiert.\n";
 		$self->{var_sort} = \@head;
 		# für insert_case
 		for (my $i = 0; $i < scalar @head; $i++) {
-			print "";
 			$self->{WORKSHEET}->Cells(1,$i+1)->{'Value'} = $head[$i];
 		}
 	}
@@ -834,7 +917,6 @@ print "Modul excel_com.pm importiert.\n";
 			350,				# Width As Single
 			40					# Height As Single
 		);
-		print "";
 		
 #		my $lastrow = $self->{WORKSHEET}->
 #		         nLastRow = .Cells.Find(What:="*", After:=.Cells(1), _
@@ -899,7 +981,6 @@ print "Modul excel_com.pm importiert.\n";
                     $array[$i] = $hit." ".$array[$i];
                 }
                 $array[$i] = $self->$hit($array[$i]);
-                #print "";
             }
         }
         return @array;
@@ -970,7 +1051,6 @@ print "Modul excel_com.pm importiert.\n";
         $string_rebuild = '"'.$string_rebuild.'"' if $ws;
         return ($string_rebuild, $string_rest);
     }
-    
 }
 
 {
@@ -988,17 +1068,23 @@ print "Modul excel_com.pm importiert.\n";
 		my $class = shift;
 		my $self = {};
 		bless($self, $class);
+        @{$self->{valid_ops}} = qw(copy move ren del);
 		return $self;
 	}
+    sub is_valid {
+        my $self = shift;
+        my $op = shift;
+        #return ($_[0] =~ /$regex/ && $_[0] !~ /^\s*\#/ ? 1 : 0);
+        my @g = grep {$op =~ /^$_$/i} (@{$self->{valid_ops}});
+        #my $ret = ( @g ? 1 : 0 );
+        return ( (grep {$op =~ /^$_$/i} (@{$self->{valid_ops}})) ? 1 : 0 );
+    }
     
-    # TODO sub in sub funktioniert nicht!?
+    # bei sub in sub können Variablen nicht geteilt werden
 	sub execute_batch {
 		my $self = shift;
 		my $path_execute = shift;
 		my $filename = shift;
-		#my $result_execute = '';
-		#my $result_error = '';
-		#chdir($path_execute) or die "Can't change directory to $path_execute: $!";
 		if ($self->{confirm_execute}) {
 			print "Execute ", $filename, "?\n";
 			if (Process::confirmJN()) {
@@ -1008,9 +1094,10 @@ print "Modul excel_com.pm importiert.\n";
 			}
 		} else {
 			$self->execute($path_execute, $filename);
-			print "";
 		}
 		
+
+        
 		sub execute {
 			my $self = shift;
 			my $path_execute = shift;
@@ -1170,9 +1257,35 @@ print "Modul excel_com.pm importiert.\n";
 		my $class = shift;
 		my $self = {};
 		bless($self, $class);
+        @{$self->{valid_ops}} = qw(copy move ren del);
 		return $self;
 	}
 	
+    ## getter, setter
+    # valid_ops
+    sub valid_ops {
+        my $self = shift;
+        if (@_) {
+            push @{$self->{valid_ops}}, @_;
+        } else {
+            return @{$self->{valid_ops}};
+        }
+    }
+    
+    sub is_valid {
+        my $self = shift;
+        my $op = shift;
+        #print 'this $string' =~ /[\$\@\%\*\&]+/ ? "yup($1)\n" . "nopen\n";
+        #return ($_[0] =~ /$regex/ && $_[0] !~ /^\s*\#/ ? 1 : 0);
+        my $ret = (grep {$op =~ /^$_$/i} @{$self->valid_ops} ? 1 : 0);
+        return $ret;
+        if ( grep {$op =~ /^$_$/i} @{$self->valid_ops} ) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+    
 	sub var_format_spss {
 		my $self = shift;
 		$self->{vars_spss} = shift;
