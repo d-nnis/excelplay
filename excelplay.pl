@@ -14,7 +14,6 @@ $excelobj->init();
 #$excelobj->add_cell(0);
 #$excelobj->transpose_level(0);
 #$excelobj->{confirm_execute} = 0;
-
 # TODO: new attribute/settings-handling
 # $excelobj->attr("dest_in_cell"=>"1");
 # dest_in_cell requires check_exist
@@ -24,7 +23,25 @@ $excelobj->{dest_in_cell} = 1;
 # dest_in_cell requires check_exist
 #$excelobj->batch_col();
 # TODO wo write und execute???
+# VER 1
 $excelobj->batch_col_block();
+
+# TODO VER 2: source und dest in getrenntem col
+#copy	
+#f:\poly\TH\TH01\	
+#.	
+#S01.tif	debla.tif
+#S02.tif	intro1.tif
+#S03.tif	intro2.tif
+#S04.tif	stopp1.tif
+
+ 
+# TODO VER 3?
+# : source und dest in einem col ??
+
+
+
+# TODO work with selected area (Range)
 
 #$excelobj->Zeilen_in_1Spalte(2,2,10,2);
 # TODO add_cell-Problem bei Zeilen_in_1Spalte etc.
