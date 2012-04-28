@@ -38,6 +38,7 @@ print "Modul excel_com.pm importiert.\n";
 		$self->{execute_show_all} = 0;
         $self->{check_exist} = 1;   # batch_col
         $self->{dest_in_cell} = 0;  # batch col
+        $self->{execute_Command} = 1;
 		
 		$Range->{add_cell} = 1;	# add cell before data dumping
 		$Range->{transpose_level} = 0;	# insert formula instead of copy values
@@ -46,6 +47,16 @@ print "Modul excel_com.pm importiert.\n";
 		return $self;
 	}
 	
+    # TODO
+    sub handle_settings {
+        my $self = shift;
+        if ($self->{execute_Command}) {
+            $self->{check_exist} = 1;
+        }
+        # dest_in_cell requires check_exist
+        # $self->{execute_Command} requires check_exist
+    }
+    
 	# save copy nach Auswahl des workbooks
 	sub init {
 		my $self = shift;
@@ -275,12 +286,11 @@ print "Modul excel_com.pm importiert.\n";
         foreach (@collect_execute) {
             my ($path_execute, $filename, $batch_string) = @$_;
             File::writefile($filename, $batch_string);
-            $Command->execute_batch($path_execute, $filename);
+            $Command->execute_batch($path_execute, $filename) if $self->{execute_Command};
         }
 	}
 
-
-    ## VER 2
+    ## batch_col_VER2
     # col1      # col2      # col3  # col4
     # copy		            copy	
     #f:\poly\TH\TH01\	.	f:\poly\TH\TH02	cache
@@ -288,51 +298,66 @@ print "Modul excel_com.pm importiert.\n";
     #S02.tif	intro1.tif	S02.tif	intro1.tif
     #S03.tif	intro2.tif	S03.tif	intro2.tif
     #S04.tif	stopp1.tif	S04.tif	stopp1.tif
-
-    # TODO sinnvolle trennung batch_col & batch_col_block
-    sub batch_col_block2 {
+    sub batch_col_VER2 {
 		my $self = shift;
-        # TODO was ist besser? $row+1, $row+2 etc oder $row++?
 		my $row_start = shift;
 		my $col_start = shift;
 		if (!defined $row_start && !defined $col_start) {
 			$self->activecell_pos();
 			($row_start, $col_start) = @{$self->{activecell}{pos}};
 		}
-        my $Command = Command->new;
         my $row = $row_start;
         my $col = $col_start;
-        ## cell1: operation
-        my $op = Data::remove_ws $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
+        ## first cell: operation (copy, move etc. ?)
+        my $op = $self->{WORKSHEET}->Cells($row_start, $col_start)->{'Value'};
+        # TODO if $op eq 'del'
+        my $Command = Command->new;
         warn "Command '$op' not valid/ not recognized !($!) @($@)" unless $Command->is_valid($op);
-        ## cell2: source path
-        # remove_ws ok?
-        my $path_source = Data::remove_ws $self->{WORKSHEET}->Cells($row+1, $col)->{'Value'};
-        ## cell3: destination path
-        my $path_dest = Data::remove_ws $self->{WORKSHEET}->Cells($row+1, $col+1)->{'Value'};
-        # one column-pair
-        my @source_file
-        my @collect_execute;
-        $self->{collect_execute} = 1;
-		while (defined $self->{WORKSHEET}->Cells($row, $col)->{'Value'}) {
-			# $path_execute, $filename, $batch_string
-            if ($self->{dest_in_cell}) {
-                push @collect_execute, [$self->batch_col2($row, $col)];
-            } else {
-                push @collect_execute, [$self->batch_col($row, $col)];
+        ##
+        ## second cell: base/execute path
+        #$row++;
+		my $path_source = $self->{WORKSHEET}->Cells($row_start+1, $col)->{'Value'};
+        die "ActiveCell is empty!" unless ($path_source);
+        die "No directory: '$path_source': $!" unless (-e $path_source) && $self->{check_exist};
+        $path_source =~ s/\\/\\\\/g;
+		$path_source .= "\\\\" unless $path_source =~ /\\\\$/;
+        ##
+        ## third cell: destination path
+        #$row++;
+        my $path_dest = $self->{WORKSHEET}->Cells($row_start+1, $col_start+1)->{'Value'};
+        if ($path_dest) {
+            $path_dest =~ s/\\/\\\\/g;
+            $path_dest .= "\\\\" unless $path_dest =~ /\\\\$/;
+        } else {
+            $path_dest = ".";
+        }
+        ##
+        ## following cells
+        #$row++;
+        my $filename = $path_source."excel_batch.bat";
+		my @source_file = $self->readcol($row_start+2, $col);
+        my @dest_file = $self->readcol($row_start+2, $col+1);
+        die "source- & dest-columns not equally long" if scalar @source_file != scalar @dest_file;
+        my @array;
+        foreach my $i (0 .. $#source_file) {
+            my $source = $path_source.$source_file[$i];
+            $source = '"$source"' if $source =~ /\w/;
+            my $dest = $path_dest.$dest_file[$i];
+            $dest = '"$dest"' if $dest =~ /\w/;
+            if ($self->{check_exist}) {
+                die "source does not exist '$source'\n" unless -e $source;
+                # nur einmal überprüfen!? Performance
+                die "destination-path does not exist '$path_dest'" unless -e $path_dest;
             }
-            $col++;
-			
-		}
-        die "ActiveCell is empty!" unless (@collect_execute);
-        $self->{collect_execute} = 0;
-        
-        # executes sammeln
-        
-        foreach (@collect_execute) {
-            my ($path_execute, $filename, $batch_string) = @$_;
+            push @array, "$op $source $dest";
+        }
+		my $batch_string = join "\n", @array;
+        if ($self->{collect_execute}) {
+            return ($path_source, $filename, $batch_string);
+        } else {
             File::writefile($filename, $batch_string);
-            $Command->execute_batch($path_execute, $filename);
+            my $Command = Command->new;
+            $Command->execute_batch($path_source, $filename) if $self->{execute_Command};
         }
 	}
         
@@ -385,7 +410,7 @@ print "Modul excel_com.pm importiert.\n";
         } else {
             File::writefile($filename, $batch_string);
             my $Command = Command->new;
-            $Command->execute_batch($path_execute, $filename);    
+            $Command->execute_batch($path_execute, $filename) if $self->{execute_Command};
         }
 	}
 
@@ -428,7 +453,7 @@ print "Modul excel_com.pm importiert.\n";
         } else {
             File::writefile($filename, $batch_string);
             my $Command = Command->new;
-            $Command->execute_batch($path_execute, $filename);    
+            $Command->execute_batch($path_execute, $filename) if $self->{execute_Command};
         }
 	}
 	
@@ -1039,7 +1064,6 @@ print "Modul excel_com.pm importiert.\n";
         $string_rebuild = '"'.$string_rebuild.'"' if $ws;
         return ($string_rebuild, $string_rest);
     }
-    
 }
 
 {
@@ -1080,6 +1104,10 @@ print "Modul excel_com.pm importiert.\n";
 			print "";
 		}
 		
+        sub is_valid {
+            
+        }
+        
 		sub execute {
 			my $self = shift;
 			my $path_execute = shift;
