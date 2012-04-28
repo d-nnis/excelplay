@@ -21,7 +21,7 @@ $excelobj->{confirm_execute} = 0;
 # $self->{execute_Command} requires check_exist
 #$excelobj->batch_col();
 # TODO wo write und execute???
-$excelobj->batch_col_VER2;
+$excelobj->batch_col_block_VER2;
 #$excelobj->batch_col_block();
 
 # VER 1
