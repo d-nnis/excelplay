@@ -307,6 +307,7 @@ print "Modul excel_com.pm importiert.\n";
             $Guess->{op} = $op;
             $Guess->{path_execute} = $path_execute;
             $Guess->{path_dest} = $path_dest;
+            @array = map {$op." ".$path_execute.$_." ".$path_dest} (@array);
             # surround source file with quotes (") if whitespace in filename/path
             @array = $Guess->parse(@array);
         }
