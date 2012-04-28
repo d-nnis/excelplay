@@ -235,7 +235,18 @@ print "Modul excel_com.pm importiert.\n";
 			default {}
 		}
 	}
-	
+	## VER 1
+    # col1                  # col2
+    #i:\vera6 2012\def\TH01	i:\vera6 2012\def\TH02
+    #COPY S01.tif debla.tif	COPY S01.tif debla.tif
+    #COPY S02.tif intro1.tif	COPY S02.tif intro1.tif
+    #COPY S03.tif intro2.tif	COPY S03.tif intro2.tif
+    #COPY S04.tif stopp1.tif	COPY S04.tif stopp1.tif
+    #COPY S05.tif VZ008_1.tif	COPY S05.tif VZ008_1.tif
+    #COPY S06.tif VZ008_2.tif	COPY S06.tif VZ008_2.tif
+    #COPY S07.tif VZ008_3.tif	COPY S07.tif VZ008_3.tif
+    #COPY S08.tif VZ008_4.tif	COPY S08.tif VZ008_4.tif
+
 	sub batch_col_block {
 		my $self = shift;
 		my $row = shift;
@@ -267,7 +278,64 @@ print "Modul excel_com.pm importiert.\n";
             $Command->execute_batch($path_execute, $filename);
         }
 	}
-	
+
+
+    ## VER 2
+    # col1      # col2      # col3  # col4
+    # copy		            copy	
+    #f:\poly\TH\TH01\	.	f:\poly\TH\TH02	cache
+    #S01.tif	debla.tif	S01.tif	debla.tif
+    #S02.tif	intro1.tif	S02.tif	intro1.tif
+    #S03.tif	intro2.tif	S03.tif	intro2.tif
+    #S04.tif	stopp1.tif	S04.tif	stopp1.tif
+
+    # TODO sinnvolle trennung batch_col & batch_col_block
+    sub batch_col_block2 {
+		my $self = shift;
+        # TODO was ist besser? $row+1, $row+2 etc oder $row++?
+		my $row_start = shift;
+		my $col_start = shift;
+		if (!defined $row_start && !defined $col_start) {
+			$self->activecell_pos();
+			($row_start, $col_start) = @{$self->{activecell}{pos}};
+		}
+        my $Command = Command->new;
+        my $row = $row_start;
+        my $col = $col_start;
+        ## cell1: operation
+        my $op = Data::remove_ws $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
+        warn "Command '$op' not valid/ not recognized !($!) @($@)" unless $Command->is_valid($op);
+        ## cell2: source path
+        # remove_ws ok?
+        my $path_source = Data::remove_ws $self->{WORKSHEET}->Cells($row+1, $col)->{'Value'};
+        ## cell3: destination path
+        my $path_dest = Data::remove_ws $self->{WORKSHEET}->Cells($row+1, $col+1)->{'Value'};
+        # one column-pair
+        my @source_file
+        my @collect_execute;
+        $self->{collect_execute} = 1;
+		while (defined $self->{WORKSHEET}->Cells($row, $col)->{'Value'}) {
+			# $path_execute, $filename, $batch_string
+            if ($self->{dest_in_cell}) {
+                push @collect_execute, [$self->batch_col2($row, $col)];
+            } else {
+                push @collect_execute, [$self->batch_col($row, $col)];
+            }
+            $col++;
+			
+		}
+        die "ActiveCell is empty!" unless (@collect_execute);
+        $self->{collect_execute} = 0;
+        
+        # executes sammeln
+        
+        foreach (@collect_execute) {
+            my ($path_execute, $filename, $batch_string) = @$_;
+            File::writefile($filename, $batch_string);
+            $Command->execute_batch($path_execute, $filename);
+        }
+	}
+        
     sub batch_col2 {
 		my $self = shift;
 		my $row = shift;
@@ -1171,9 +1239,35 @@ print "Modul excel_com.pm importiert.\n";
 		my $class = shift;
 		my $self = {};
 		bless($self, $class);
+        @{$self->{valid_ops}} = qw(copy move ren del);
 		return $self;
 	}
 	
+    ## getter, setter
+    # valid_ops
+    sub valid_ops {
+        my $self = shift;
+        if (@_) {
+            push @{$self->{valid_ops}}, @_;
+        } else {
+            return @{$self->{valid_ops}};
+        }
+    }
+    
+    sub is_valid {
+        my $self = shift;
+        my $op = shift;
+        #print 'this $string' =~ /[\$\@\%\*\&]+/ ? "yup($1)\n" . "nopen\n";
+        #return ($_[0] =~ /$regex/ && $_[0] !~ /^\s*\#/ ? 1 : 0);
+        my $ret = (grep {$op =~ /^$_$/i} @{$self->valid_ops} ? 1 : 0);
+        return $ret;
+        if ( grep {$op =~ /^$_$/i} @{$self->valid_ops} ) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+    
 	sub var_format_spss {
 		my $self = shift;
 		$self->{vars_spss} = shift;

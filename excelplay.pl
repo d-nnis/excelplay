@@ -22,20 +22,20 @@ $excelobj->{dest_in_cell} = 1;
 # TODO wo write und execute???
 $excelobj->batch_col_block();
 
-# TODO VER 1: source und dest in getrenntem col
+# VER 1
+
+# TODO VER 2: source und dest in getrenntem col
 #copy	
-#f:\poly\TH\TH01\	
-#.	
+#	
+#f:\poly\TH\TH01\   .	
 #S01.tif	debla.tif
 #S02.tif	intro1.tif
 #S03.tif	intro2.tif
 #S04.tif	stopp1.tif
 
  
-# TODO VER 2?
+# TODO VER 3?
 # : source und dest in einem col ??
-
-
 
 # TODO work with selected area (Range)
 
