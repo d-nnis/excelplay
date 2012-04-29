@@ -1,13 +1,15 @@
-2012 Apr 28, 22:39:54
+2012 Apr 29, 4:5:50
 excelplay.pl
 ===========
-23: TODO wo write und execute???
-29: TODO VER 2: source und dest in getrenntem col
-39: TODO VER 3?
-42: TODO work with selected area (Range)
-45: TODO add_cell-Problem bei Zeilen_in_1Spalte etc.
-54: TODO
-55: # regex, und regexp -handling vereinheitlichn
+18: TODO: new attribute/settings-handling
+27: TODO wo write und execute???
+28: # VER 1
+31: TODO VER 2: source und dest in getrenntem col
+41: TODO VER 3?
+46: TODO work with selected area (Range)
+49: TODO add_cell-Problem bei Zeilen_in_1Spalte etc.
+58: TODO
+59: # regex, und regexp -handling vereinheitlichn
 ===========
 
 excel_com.pm
@@ -82,4 +84,3 @@ excel_lib.pm
 13: TODO A1-Format via Excel-Funktion
 ===========
 
-DELETING f:\Users\d-nnis\workspace\excelplay\tmpygsx7r.html
