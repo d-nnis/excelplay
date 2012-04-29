@@ -1,48 +1,10 @@
-
-use feature "switch";
-#use File::Copy;
+use feature qw(switch);
 use strict;
 use warnings;
-#use warnings FATAL => qw( all );
-use IO::Handle;
-#open ERROR,  '>', "error.txt"  or die $!;
-#STDERR->fdopen( \*ERROR,  'w' ) or die $!;
 
-##################################
-# log handler: warnings and dies
-# my $log = Log::Handler->new();
-# my $DOWARN = 1;
-# my %config = File::readfile('config_V6.csv', 'config');
-# my $reportdir = '';
-# my $reportfile = $config{error_handle_log};
-# BEGIN {
-	# use Log::Handler; 
-	# $SIG{'__WARN__'} = sub {
-		# if ($DOWARN) {
-			# warn @_;
-			# $log->warning(@_);
-		# }
-	# };
-	# $SIG{'__DIE__'} = sub {
-		# if ($DOWARN) {
-			# die @_;
-			# $log->critical(@_);
-		# }
-	# }
-# }
-# $log->add(
-	# file => {
-		# filename	=> $reportfile,
-		# maxlevel	=> 7,
-		# minlevel	=> 0,
-		# debug_trace	=> 1,
-		# debug_mode	=> 1,
-		# debug_skip	=> 2,
-	# },
-# );
-################################
+#use IO::Handle;
 
-#print "Modul essent.pm: error_log: ", $reportfile, "\n";
+print "Modul essent.pm\n";
 
 {
 	package File;
@@ -263,7 +225,7 @@ use IO::Handle;
 			return 0;
 		}
 	}
-	
+    
 	sub confirm_numcount {
 		my $max = shift;
 		my $eingabe='';
@@ -277,6 +239,7 @@ use IO::Handle;
 		return $eingabe+0;
 	}
 	
+
 	sub getTime {
 		my $sec; my $min; my $hour; my $mday; my $mon; my $year; my $wday; my $yday; my $isdst;
 		my @abbr = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
@@ -352,7 +315,8 @@ use IO::Handle;
 	}
 	
 	sub get_extname {
-		return $1 if ($_[0] =~ /\.(\w{3})/);
+		#return $1 if ($_[0] =~ /\.(\w{3})/);
+		return $1 if ($_[0] =~ /\.(\w+)$/);
 		warn "!! get_extname-error\n";
 	}
 	
@@ -362,8 +326,7 @@ use IO::Handle;
 	#  Entferne Whitespaces
 	sub extractfilename {
 		my $filepath = $_[0];
-		#while ($filepath =~ /\\(.*)/) {
-		while ($filepath =~ /[\\|\/](.*)/) {
+		while ($filepath =~ /\\(.*)/) {
 			$filepath = $1;
 		}
 		return remove_ws($filepath);
@@ -456,6 +419,7 @@ use IO::Handle;
 		}
 		return $pagenumber;
 	}
+	
 	sub addchar {
 		my $base = shift;
 		$base = '' unless defined $base;
@@ -586,3 +550,78 @@ use IO::Handle;
 
 }
 1;
+
+__END__
+
+#########
+## alt ##
+#########
+
+##################################
+# log handler: warnings and dies
+my $log = Log::Handler->new();
+my $DOWARN = 1;
+my %config = File::readfile('config_V6.csv', 'config');
+my $reportdir = '';
+my $reportfile = $config{error_handle_log};
+BEGIN {
+	use Log::Handler; 
+	$SIG{'__WARN__'} = sub {
+		if ($DOWARN) {
+			warn @_;
+			$log->warning(@_);
+		}
+	};
+	$SIG{'__DIE__'} = sub {
+		if ($DOWARN) {
+			die @_;
+			$log->critical(@_);
+		}
+	}
+}
+$log->add(
+	file => {
+		filename	=> $reportfile,
+		maxlevel	=> 7,
+		minlevel	=> 0,
+		debug_trace	=> 1,
+		debug_mode	=> 1,
+		debug_skip	=> 2,
+	},
+);
+################################
+
+
+=pod
+
+=head1 NAME
+
+Essent.pm - wesentliche, oft gebrauchte Routinen
+
+=head1 PACKAGE File
+
+=head2 readfile
+
+in: einzulesende Datei mit vollem Pfad
+out: array mit Zeilen des Dateiinhalts
+
+=head2 writefile
+in: Dateiname, Schreibmodus, array
+out: Datei
+
+=head1 PACKAGE Process
+
+=head2 confirm
+in: -
+out: -
+
+Wartet auf Bestaetigung mit 'j'
+
+=head1 PACKAGE Data
+
+=head2 chomping
+in: $variable
+out: $variable ohne Zeilenumbruch
+
+
+=cut

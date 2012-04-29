@@ -5,6 +5,7 @@ use feature qw(say switch);
 use Excel_lib;
 use Win32::OLE qw(in with);
 use Essent;
+use Carp;
 
 # TODO welche Funktionen brauche ich?
 use Win32::OLE::Const 'Microsoft Excel';
@@ -38,7 +39,7 @@ print "Modul excel_com.pm importiert.\n";
 		$self->{execute_show_all} = 0;
         $self->{check_exist} = 1;   # batch_col
         $self->{dest_in_cell} = 0;  # batch col
-        $self->{execute_Command} = 1;
+        $self->{execute_command} = 1;
 		
 		$Range->{add_cell} = 1;	# add cell before data dumping
 		$Range->{transpose_level} = 0;	# insert formula instead of copy values
@@ -48,13 +49,28 @@ print "Modul excel_com.pm importiert.\n";
 	}
 	
     # TODO
-    sub handle_settings {
+    sub option {
         my $self = shift;
-        if ($self->{execute_Command}) {
+        if (@_ % 2 != 0) {
+            #croak "usage: tie \@array, $_[0], filename, [option => value]...";
+            warn "usage: tie \@array, $_[0], filename, [option => value]...";
+        }
+        my (%opts_in) = @_;
+        my @valid_opts = qw(add_cell transpose_level confirm_execute execute_show_all check_exist dest_in_cell execute_command);
+        my $option;
+        foreach my $opt_in (keys %opts_in) {
+            warn "not recognized option: $opt_in" unless grep {$opt_in eq $_} @valid_opts;
+            # settings anlegen $self->{confirm_execute} = 1 etc.
+            $self->{$opt_in} = $opts_in{$opt_in};
+        }
+        # settings dependencies, e.g. execute_command requires check_exist
+        if ($self->{execute_command}) {
+            warn "options altered according to dependencies: check_exist => 1\n" unless $self->{check_exist};
             $self->{check_exist} = 1;
         }
-        # dest_in_cell requires check_exist
-        # $self->{execute_Command} requires check_exist
+        if ($self->{dest_in_cell}) {
+            $self->{check_exist} = 1;
+        }
     }
     
 	# save copy nach Auswahl des workbooks
@@ -286,7 +302,7 @@ print "Modul excel_com.pm importiert.\n";
         foreach (@collect_execute) {
             my ($path_execute, $filename, $batch_string) = @$_;
             File::writefile($filename, $batch_string);
-            $Command->execute_batch($path_execute, $filename) if $self->{execute_Command};
+            $Command->execute_batch($path_execute, $filename) if $self->{execute_command};
         }
 	}
     ## batch_col_block_VER2
@@ -321,7 +337,7 @@ print "Modul excel_com.pm importiert.\n";
         foreach (@collect_execute) {
             my ($path_execute, $filename, $batch_string) = @$_;
             File::writefile($filename, $batch_string);
-            $Command->execute_batch($path_execute, $filename) if $self->{execute_Command};
+            $Command->execute_batch($path_execute, $filename) if $self->{execute_command};
         }
 	}
 
@@ -400,7 +416,7 @@ print "Modul excel_com.pm importiert.\n";
         } else {
             File::writefile($filename, $batch_string);
             my $Command = Command->new;
-            $Command->execute_batch($path_source, $filename) if $self->{execute_Command};
+            $Command->execute_batch($path_source, $filename) if $self->{execute_command};
         }
 	}  
 
@@ -443,7 +459,7 @@ print "Modul excel_com.pm importiert.\n";
         } else {
             File::writefile($filename, $batch_string);
             my $Command = Command->new;
-            $Command->execute_batch($path_execute, $filename) if $self->{execute_Command};
+            $Command->execute_batch($path_execute, $filename) if $self->{execute_command};
         }
 	}
 	
