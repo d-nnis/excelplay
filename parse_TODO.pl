@@ -83,3 +83,6 @@ if ($delete_tmp) {
 unshift @parse_results, Process::getTime()."\n";
 
 File::writefile($todo, @parse_results);
+
+print "ende\n";
+Process::confirm();
