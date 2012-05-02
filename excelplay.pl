@@ -2,6 +2,8 @@ use strict;
 use warnings;
 use excel_com;
 use feature qw/say/;
+use File::Basename;
+#http://search.cpan.org/~gene/File-Backup-0.07/lib/File/Backup.pm
 
 #chdir("f:\\Users\\d-nnis\\workspace\\excelplay") or die "Can't change directory: $!";
 my $excelobj = Excelobject->new();
@@ -9,6 +11,14 @@ my $excelobj = Excelobject->new();
 $excelobj->init();
 #$excelobj->init($excelfile,4);
 
+# TODO File::Basename
+    #use File::Basename;
+    #
+    #($name,$path,$suffix) = fileparse($fullname,@suffixlist);
+    #$name = fileparse($fullname,@suffixlist);
+    #
+    #$basename = basename($fullname,@suffixlist);
+    #$dirname  = dirname($fullname);
 
 ## settings
 #$excelobj->add_cell(0);
@@ -20,7 +30,8 @@ $excelobj->init();
 # dest_in_cell requires check_exist
 
 $excelobj->option(confirm_execute=>1);
-$excelobj->option(execute_command=>1, check_exist=>0);
+$excelobj->option(execute_command=>1, add_cell=>0);
+
 #$excelobj->{dest_in_cell} = 1;
 # dest_in_cell requires check_exist
 # $self->{execute_Command} requires check_exist
@@ -29,7 +40,7 @@ $excelobj->option(execute_command=>1, check_exist=>0);
 # VER 1
 #$excelobj->batch_col_block();
 
-$excelobj->batch_col_VER2;
+#$excelobj->batch_col_VER2;
 
 
 # TODO VER 2: source und dest in getrenntem col
@@ -52,7 +63,7 @@ $excelobj->batch_col_VER2;
 #$excelobj->Zeilen_in_1Spalte(2,2,10,2);
 # TODO add_cell-Problem bei Zeilen_in_1Spalte etc.
 #$excelobj->add_cell(0);
-#$excelobj->Zeilen_in_1Spalte();
+$excelobj->Zeilen_in_1Spalte();
 #$excelobj->Spalten_in_1Zeile();
 
 #$excelobj->active_cell('aim');

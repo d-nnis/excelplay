@@ -48,12 +48,26 @@ print "Modul excel_com.pm importiert.\n";
 		return $self;
 	}
 	
+    # TODO: aus Range heraus die hashes von self (Excelobject) erreichen
+    sub get_option {
+        my $self = shift;
+        my $option = shift;
+        my $val = $self->{$option};
+        return $val;
+    }
+    
     # TODO
     sub option {
         my $self = shift;
         if (@_ % 2 != 0) {
-            #croak "usage: tie \@array, $_[0], filename, [option => value]...";
-            warn "usage: tie \@array, $_[0], filename, [option => value]...";
+            if (@_ > 1) {
+                #croak "usage: tie \@array, $_[0], filename, [option => value]...";
+                warn "usage: tie \@array, $_[0], filename, [option => value]...";    
+            } else {
+                #return ($_[0] =~ /$regex/ && $_[0] !~ /^\s*\#/ ? 1 : 0);
+                return ($self->{$_[0]} ? $self->{$_[0]} : warn "option $_[0] not recognized");
+            }
+            
         }
         my (%opts_in) = @_;
         my @valid_opts = qw(add_cell transpose_level confirm_execute execute_show_all check_exist dest_in_cell execute_command);
@@ -62,6 +76,7 @@ print "Modul excel_com.pm importiert.\n";
             warn "not recognized option: $opt_in" unless grep {$opt_in eq $_} @valid_opts;
             # settings anlegen $self->{confirm_execute} = 1 etc.
             $self->{$opt_in} = $opts_in{$opt_in};
+            $Range->{$opt_in} = $opts_in{$opt_in};
         }
         # settings dependencies, e.g. execute_command requires check_exist
         if ($self->{execute_command}) {
@@ -1210,6 +1225,7 @@ print "Modul excel_com.pm importiert.\n";
 		$depth_arr = 1 if $depth_arr < 1;
 		# add cells
 		# add cols
+        #my $t = get_option("add_cell");
 		if ($Range->{add_cell}) {
 			for (my $i = 1; $i <= $depth_arr; $i++) {
 				$self->{WORKSHEET}->Columns($range_start_col)->Insert;
