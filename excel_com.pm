@@ -62,6 +62,7 @@ print "Modul excel_com.pm importiert.\n";
             warn "not recognized option: $opt_in" unless grep {$opt_in eq $_} @valid_opts;
             # settings anlegen $self->{confirm_execute} = 1 etc.
             $self->{$opt_in} = $opts_in{$opt_in};
+			$Range->{$opt_in} = $opts_in{$opt_in};
         }
         # settings dependencies, e.g. execute_command requires check_exist
         if ($self->{execute_command}) {
@@ -387,7 +388,7 @@ print "Modul excel_com.pm importiert.\n";
         #$row++;
         my $filename = $path_source."excel_batch.bat";
 		my @source_file = $self->readcol($row_start+2, $col);
-        my @dest_file = $self->readcol($row_start+2, $col+1);
+        my @dest_file;
         die "source- & dest-columns not equally long" if scalar @source_file != scalar @dest_file;
         my @array;
         foreach my $i (0 .. $#source_file) {
@@ -977,7 +978,8 @@ print "Modul excel_com.pm importiert.\n";
         %{$self->{lib}} = (copy=>"group2",
                            move=>"group2",
                            ren=>"group2",
-                           del=>"group1");
+                           del=>"group1",
+						   mkdir=>"group1");
         $self->{path_dest} = '';    # default for batch_col2
 		return $self;
 	}
@@ -988,25 +990,49 @@ print "Modul excel_com.pm importiert.\n";
         my @parsed_array;
         # TODO alternative mit for oder foreach...
         for (my $i = 0; $i < scalar @array; $i++) {
-            my @kes = keys %{$self->{lib}};
-            if ( my ($lib) = grep {$array[$i] =~ /^($_)/i} @kes ) {
+			# copy || move etc
+            if ( my ($op) = grep {$array[$i] =~ /^($_)/i} keys %{$self->{lib}} ) {
                 # TODO parse hier: valider op-mode?
-                my $hit = ${$self->{lib}}{$lib};
+				#
+				# group1 || group2
+                my $op_group = ${$self->{lib}}{$op};
                 if ($self->{op}) {
-                    $hit = $self->{op};
-                    $array[$i] = $hit." ".$array[$i];
-                }
-                $array[$i] = $self->$hit($array[$i]);
+                    $op_group = $self->{op};	#
+                    $array[$i] = $op_group." ".$array[$i];	# ???
+                } else {	# ELSE CORRECT?
+					# $self->{GROUP1 || GROUP2}
+					$array[$i] = $self->$op_group($array[$i]);
+				}
+                
             }
         }
         return @array;
     }
     
-    ## TODO group1: DEL
+    ## TODO group1: DEL MKDIR
+#MKDIR
+#i:\vera6 2012\def2\
+#01
+#02
+#03
+#04
+#05
+#06
+#07
+#08
+#09
+#10
+#11
+#12
+
     sub group1 {
         my $self = shift;
         my $string = shift;
-        $string =~ /()/;
+        $string =~ /(del|mkdir)\s(\w.*)/i;
+		my $op = $1;
+		$string = $2;
+		my $file1 = $self->rebuild($string);
+		return "$op $file1";
     }
     
     ## group2: COPY MOVE REN
@@ -1025,8 +1051,8 @@ print "Modul excel_com.pm importiert.\n";
         my $hit = $1;
         $hit = $self->{op} if $self->{op};
         $string = $2;
-        my ($file1, $file2) = $self->rebuild($string);
-        return "$hit $file1 $file2";
+        my $files = $self->rebuild($string);
+        return "$hit $files";
         # TODO
         # COPY 2012-03-15 Vereinsliste aktive.xlsx tee.txt
         # Endergebnis:
@@ -1060,12 +1086,14 @@ print "Modul excel_com.pm importiert.\n";
             $string_rebuild .= " ";
             $ws = 1;
         }
+		# TODO funzt nicht mit 'COPY i:\vera6 2012\def\TH01\*.* i:\vera6 2012\def\_sammeln'
         die "first argument (file) does not exist!: ->$self->{path_execute}.$string_rebuild<-" unless $file_exist;
         die "second argument (destination) missing\n" unless $string_rest;
         $string_rest = $self->{path_dest}.$string_rest;
         $string_rest = '"'.$string_rest.'"' if $string_rest =~ /\s/;
         $string_rebuild = '"'.$string_rebuild.'"' if $ws;
-        return ($string_rebuild, $string_rest);
+        #return ($string_rebuild, $string_rest);
+		return Data::remove_ws "$string_rebuild $string_rest";
     }
 }
 
@@ -1080,18 +1108,20 @@ print "Modul excel_com.pm importiert.\n";
     # base class: Excelobject (method-scope)
     @Command::ISA = qw(Excelobject);
     
+	# TODO: kombinieren: valid_ops und %{$self->{lib}}
+	
 	sub new {
 		my $class = shift;
 		my $self = {};
 		bless($self, $class);
-        @{$self->{valid_ops}} = qw(copy move ren del);
+        @{$self->{valid_ops}} = qw(copy move ren del mkdir);
 		return $self;
 	}
     sub is_valid {
         my $self = shift;
         my $op = shift;
         #return ($_[0] =~ /$regex/ && $_[0] !~ /^\s*\#/ ? 1 : 0);
-        my @g = grep {$op =~ /^$_$/i} (@{$self->{valid_ops}});
+        #my @g = grep {$op =~ /^$_$/i} (@{$self->{valid_ops}});
         #my $ret = ( @g ? 1 : 0 );
         return ( (grep {$op =~ /^$_$/i} (@{$self->{valid_ops}})) ? 1 : 0 );
     }

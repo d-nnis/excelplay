@@ -9,27 +9,18 @@ my $excelobj = Excelobject->new();
 $excelobj->init();
 #$excelobj->init($excelfile,4);
 
-
-## settings
-#$excelobj->add_cell(0);
-#$excelobj->transpose_level(0);
-#$excelobj->{confirm_execute} = 0;
-# beispiel: tie @array, 'Tie::File', $file, memory => 20_000_000;
-# TODO: new attribute/settings-handling
-# $excelobj->attr("dest_in_cell"=>"1");
-# dest_in_cell requires check_exist
-
+# TODO confirm_execute kommt nicht an!
 $excelobj->option(confirm_execute=>1);
-$excelobj->option(execute_command=>1, check_exist=>0);
+$excelobj->option(execute_command=>1);
 #$excelobj->{dest_in_cell} = 1;
 # dest_in_cell requires check_exist
 # $self->{execute_Command} requires check_exist
 #$excelobj->batch_col();
 # TODO wo write und execute???
 # VER 1
-#$excelobj->batch_col_block();
+$excelobj->batch_col_block();
 
-$excelobj->batch_col_VER2;
+#$excelobj->batch_col_VER2;
 
 
 # TODO VER 2: source und dest in getrenntem col
