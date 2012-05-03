@@ -24,13 +24,9 @@ $excelobj->init();
 #$excelobj->add_cell(0);
 #$excelobj->transpose_level(0);
 #$excelobj->{confirm_execute} = 0;
-# beispiel: tie @array, 'Tie::File', $file, memory => 20_000_000;
-# TODO: new attribute/settings-handling
-# $excelobj->attr("dest_in_cell"=>"1");
-# dest_in_cell requires check_exist
 
-$excelobj->option(confirm_execute=>1);
-$excelobj->option(execute_command=>1, add_cell=>0);
+
+$excelobj->option(execute_command=>1, add_cell=>0, confirm_execute=>1, check_exist=>1);
 
 
 # TODO confirm_execute kommt nicht an!
@@ -42,25 +38,11 @@ $excelobj->option(execute_command=>1, add_cell=>0);
 # $self->{execute_Command} requires check_exist
 #$excelobj->batch_col();
 # TODO wo write und execute???
-# VER 1
-$excelobj->batch_col_block();
 
-#$excelobj->batch_col_VER2;
-
-
-# TODO VER 2: source und dest in getrenntem col
-#copy	
-#f:\poly\TH\TH01\	
-#.	
-#S01.tif	debla.tif
-#S02.tif	intro1.tif
-#S03.tif	intro2.tif
-#S04.tif	stopp1.tif
-
- 
-# TODO VER 3?
-# : source und dest in einem col ??
-
+#$excelobj->batch_col;
+$excelobj->batch_col_VER2;
+#$excelobj->batch_col_block_VER2();
+#$excelobj->batch_col_block();
 
 
 # TODO work with selected area (Range)
@@ -68,7 +50,7 @@ $excelobj->batch_col_block();
 #$excelobj->Zeilen_in_1Spalte(2,2,10,2);
 # TODO add_cell-Problem bei Zeilen_in_1Spalte etc.
 #$excelobj->add_cell(0);
-$excelobj->Zeilen_in_1Spalte();
+#$excelobj->Zeilen_in_1Spalte();
 #$excelobj->Spalten_in_1Zeile();
 
 #$excelobj->active_cell('aim');
