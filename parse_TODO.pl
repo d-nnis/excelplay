@@ -36,8 +36,8 @@ foreach my $file (@perls) {
 	$sub = '';
 	foreach my $line (@filecontent) {
 		$line_number++;
-		$package = ("$line_number: ".$1) if $line =~ /\s*(package\s\w+)\s*;$/;
-		$sub = ("$line_number: ".$1) if $line =~ /\s*(sub\s\w+)\s*{$/;
+		$package = ("_$line_number: ".$1) if $line =~ /\s*(package\s\w+)\s*;$/;
+		$sub = ("_$line_number: ".$1) if $line =~ /\s*(sub\s\w+)\s*{$/;
 		$context_sign = $package."-".$sub;
 		
 		unless ($context{$context_sign})  {
