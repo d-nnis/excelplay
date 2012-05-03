@@ -249,6 +249,7 @@ print "Modul excel_com.pm importiert.\n";
 		return $lastlast_row;
 	}
 	
+	# TODO with OPTION & get_option!?
 	sub join_sep {
 		my $self = shift;
 		$self->{join_sep} = shift || return $self->{join_sep};
@@ -393,12 +394,22 @@ print "Modul excel_com.pm importiert.\n";
 			$self->activecell_pos();
 			($row, $col) = @{$self->{activecell}{pos}};
 		}
+		
+		my $jump_col;
         my @collect_execute;
         $self->option(collect_execute=>1);
 		while (defined $self->{WORKSHEET}->Cells($row, $col)->{'Value'}) {
+			## cell: operation-mode
+			my $op = $self->get_op($row, $col);
+			# one or two columns-jump? del -> 1, copy -> 2
+			if ( ${$Command->{op}}{$op} eq "group1" ) {
+				$jump_col = 1;
+			} elsif ( ${$Command->{op}}{$op} eq "group2" ) {
+				$jump_col = 2;
+			}
 			# $path_execute, $filename, $batch_string
-            push @collect_execute, [$self->batch_col_VER2($row, $col)];
-            $col = $col+2;
+            push @collect_execute, [$self->batch_col_VER2($row, $col, $op)];
+            $col += $jump_col;
 			
 		}
         die "ActiveCell is empty!" unless (@collect_execute);
@@ -412,7 +423,21 @@ print "Modul excel_com.pm importiert.\n";
             $Command->execute_batch($path_execute, $filename) if $self->get_option("execute_command");
         }
 	}
-
+	
+	sub get_op {
+		my $self = shift;
+		my $row = shift;
+		my $col = shift;
+		if (!defined $row && !defined $col) {
+			$self->activecell_pos();
+			($row, $col) = @{$self->{activecell}{pos}};
+		}
+		my $op = Data::remove_ws $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
+		#$self->option(op=>$op);
+		warn "Command '$op' not valid?!" unless $Command->is_valid($op);
+		return $op;
+	}
+	
     ## batch_col_VER2
     # col1      # col2   
     # copy		         
@@ -423,27 +448,66 @@ print "Modul excel_com.pm importiert.\n";
     #S04.tif	stopp1.tif
     sub batch_col_VER2 {
 		my $self = shift;
-		my $row_start = shift;
-		my $col_start = shift;
-		if (!defined $row_start && !defined $col_start) {
+		my $row = shift;
+		my $col = shift;
+		if (!defined $row && !defined $col) {
 			$self->activecell_pos();
-			($row_start, $col_start) = @{$self->{activecell}{pos}};
+			($row, $col) = @{$self->{activecell}{pos}};
 		}
-        my $row = $row_start;
-        my $col = $col_start;
-        ## first cell: operation (copy, move etc. ?)
-        my $op = Data::remove_ws $self->{WORKSHEET}->Cells($row_start, $col_start)->{'Value'};
-        # TODO if $op eq 'del'
-        warn "Command '$op' not valid?!" unless $Command->is_valid($op);
-        ##
-        ## second cell: base/execute path
-		my $path_source = $self->{WORKSHEET}->Cells($row_start+1, $col)->{'Value'};
+		my $op = shift || $self->get_op($row, $col);
+        ## next cell: base/execute path
+		$row++;
+		my $path_source = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
         die "ActiveCell is empty!" unless ($path_source);
         die "'$path_source': $!" unless (-e $path_source) && $self->get_option("check_exist");
 		$path_source .= "\\" unless $path_source =~ /\\$/;
         ##
-        ## third cell: destination path
-        my $path_dest = $self->{WORKSHEET}->Cells($row_start+1, $col_start+1)->{'Value'};
+		#my $filename = $path_source."excel_batch.bat";
+		my $filename = $path_source."excel_".$op.".bat";
+		## next cells
+		my @array;
+		if ( ${$Command->{op}}{$op} eq "group1" ) {
+			@array = $self->batch_1col($row, $col, $op, $path_source);
+		} elsif ( ${$Command->{op}}{$op} eq "group2" ) {
+			@array = $self->batch_2col($row, $col, $op, $path_source);
+		}
+		
+		my $batch_string = join "\n", @array;
+        if ($self->get_option("collect_execute")) {
+            return ($path_source, $filename, $batch_string);
+        } else {
+            File::writefile($filename, $batch_string);
+            #my $Command = Command->new;
+            $Command->execute_batch($path_source, $filename) if $self->get_option("execute_command");
+        }
+	}
+	
+	sub batch_1col {
+		my $self = shift;
+		my $row = shift;
+		my $col = shift;
+		my $op = shift;
+		my $path_source = shift;
+        ## following cells
+		$row++;
+		my @source_file = $self->readcol($row, $col);
+        my @array;
+        foreach my $i (0 .. $#source_file) {
+            my $source = $path_source.$source_file[$i];
+            $source = '"'.$source.'"' if $source =~ /\s/;
+            push @array, "$op $source";
+        }
+		return @array;
+	}
+	# TODO nicht von außen verwendbar machen! (-> eigenes Packes, not export!??)
+	sub batch_2col {
+		my $self = shift;
+		my $row = shift;
+		my $col = shift;
+		my $op = shift;
+		my $path_source = shift;
+        ## next cell: destination path
+        my $path_dest = $self->{WORKSHEET}->Cells($row, $col+1)->{'Value'};
         if ($path_dest) {
             #$path_dest =~ s/\\/\\\\/g;
             $path_dest .= "\\" unless $path_dest =~ /\\$/;
@@ -452,10 +516,9 @@ print "Modul excel_com.pm importiert.\n";
         }
         ##
         ## following cells
-        my $filename = $path_source."excel_batch.bat";
-		### in sub
-		my @source_file = $self->readcol($row_start+2, $col);
-        my @dest_file = $self->readcol($row_start+2, $col+1);
+		$row++;
+		my @source_file = $self->readcol($row, $col);
+        my @dest_file = $self->readcol($row, $col+1);
         die "source- & dest-columns not equally long" if scalar @source_file != scalar @dest_file;
         my @array;
         foreach my $i (0 .. $#source_file) {
@@ -478,19 +541,7 @@ print "Modul excel_com.pm importiert.\n";
             }
             push @array, "$op $source $dest";
         }
-		### in sub
-		my $batch_string = join "\n", @array;
-        if ($self->get_option("collect_execute")) {
-            return ($path_source, $filename, $batch_string);
-        } else {
-            File::writefile($filename, $batch_string);
-            #my $Command = Command->new;
-            $Command->execute_batch($path_source, $filename) if $self->get_option("execute_command");
-        }
-		
-		sub one_arg {
-			
-		}
+		return @array;
 	}  
 
 	## batch_row
@@ -1234,6 +1285,7 @@ print "Modul excel_com.pm importiert.\n";
 				File::writefile($filename.".log", $result_execute);
 			} else {	# show only errors
 				my $first;
+				### analyse result_lines; move to sub check_system_feedback
 				foreach my $result_line (split /\n/, $result_execute) {
                     next unless $result_line;   # das gleiche, wie: next if length $result_line == 0;
 					if ($first) {
@@ -1248,6 +1300,7 @@ print "Modul excel_com.pm importiert.\n";
 						$first = $result_line;
 					}						
 				}
+				###
 				if ($result_error) {
 					print "\n______EXECUTE ERROR: $filename ___\n";
 					print $result_error;
@@ -1258,6 +1311,13 @@ print "Modul excel_com.pm importiert.\n";
                 }
 			}
 		}
+	}
+	
+	# TODO check_system_feedback, depending on operation
+	sub check_system_feedback {
+		my $self = shift;
+		my $op = $self->get_option("op");
+		
 	}
 }
 

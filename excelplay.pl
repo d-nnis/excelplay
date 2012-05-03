@@ -25,9 +25,7 @@ $excelobj->init();
 #$excelobj->transpose_level(0);
 #$excelobj->{confirm_execute} = 0;
 
-
 $excelobj->option(execute_command=>1, add_cell=>0, confirm_execute=>1, check_exist=>1);
-
 
 # TODO confirm_execute kommt nicht an!
 #$excelobj->option(confirm_execute=>1);
@@ -40,8 +38,8 @@ $excelobj->option(execute_command=>1, add_cell=>0, confirm_execute=>1, check_exi
 # TODO wo write und execute???
 
 #$excelobj->batch_col;
-$excelobj->batch_col_VER2;
-#$excelobj->batch_col_block_VER2();
+#$excelobj->batch_col_VER2;
+$excelobj->batch_col_block_VER2();
 #$excelobj->batch_col_block();
 
 
