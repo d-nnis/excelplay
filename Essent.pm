@@ -121,7 +121,16 @@ print "Modul essent.pm\n";
 		}
 		open (WFILE, '>', $file);
 		print WFILE @lines;
-		print " lines: ", scalar @lines, ".\n";
+        my $line_num = 0;
+        if (scalar @lines > 1) {
+            $line_num = scalar @lines;
+        } else {
+            foreach (@lines) {
+                my $scal = scalar split /\n/, $_;
+                $line_num += $scal if $line_num < $scal;
+            }            
+        }
+		print " lines: ", $line_num, ".\n";
 		close WFILE;
 	}
 	
