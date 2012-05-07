@@ -19,7 +19,6 @@ $Win32::OLE::Warn = 3;
 my $Range = Range->new();
 my $Command = Command->new();
 my $Guess = Guess->new();
-$Range->{tee} = 1;
 
 print "Modul excel_com.pm importiert.\n";
 

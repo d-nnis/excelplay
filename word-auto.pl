@@ -23,27 +23,23 @@ $doc->PageSetup->{'TopMargin'} = 10;
 $doc->PageSetup->{'BottomMargin'} = 10;
 $doc->PageSetup->{'LeftMargin'} = 10;
 $doc->PageSetup->{'RightMargin'} = 10;
-
-$doc->PageSetup->{'BottomMargin'} = 100;
-
-my $x = $word->Documents->ReadingLayoutSizeX;
-
-		#$self->{WORKSHEET}->Rows($caseln)->{'RowHeight'} = 55;
-		#my $top_align = ($caseln-2)*54.75+20;
-		#$self->{WORKSHEET}->Shapes->AddPicture (
-		#	$schnipp_abs,		# Filename As String
-		#	1,					# LinkToFile As MsoTriState
-		#	1,					# SaveWithDocument As MsoTriState
-		#	490,				# Left As Single
-		#	$top_align,	# Top As Single
-		#	350,				# Width As Single
-		#	40					# Height As Single
-		#);
-
-
-
-
 ## /Layout
+
+#my $x = $word->Documents->ReadingLayoutSizeX;
+#$self->{WORKSHEET}->Shapes->AddPicture (
+#	$schnipp_abs,		# Filename As String
+#	1,					# LinkToFile As MsoTriState
+#	1,					# SaveWithDocument As MsoTriState
+#	490,				# Left As Single
+#	$top_align,	# Top As Single
+#	350,				# Width As Single
+#	40					# Height As Single
+#);
+
+
+
+
+
 my $range = $doc->{Content};
 
 ### insert some text into the document

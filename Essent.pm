@@ -164,7 +164,9 @@ print "Modul essent.pm\n";
 		print " lines added: ", scalar @lines, ".\n";
 		close WFILE;
 	}
-	
+	## get_by_ext
+    ## example: my @files = File::get_by_ext($path, "doc[x]?");
+    ## gets files *.dec and *.docx
 	sub get_by_ext {
 		my $dir = shift;
 		my $ext = shift;
