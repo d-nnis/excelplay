@@ -126,7 +126,8 @@ print "Modul essent.pm\n";
             $line_num = scalar @lines;
         } else {
             foreach (@lines) {
-                my $scal = scalar split /\n/, $_;
+				my @arr = split /\n/, $_;
+                my $scal = scalar @arr;
                 $line_num += $scal if $line_num < $scal;
             }            
         }
@@ -164,9 +165,7 @@ print "Modul essent.pm\n";
 		print " lines added: ", scalar @lines, ".\n";
 		close WFILE;
 	}
-	## get_by_ext
-    ## example: my @files = File::get_by_ext($path, "doc[x]?");
-    ## gets files *.dec and *.docx
+	
 	sub get_by_ext {
 		my $dir = shift;
 		my $ext = shift;
@@ -185,6 +184,10 @@ print "Modul essent.pm\n";
 		return @erg;
 	}
 	
+	## get_subdirs
+	## out: subdirs (relative path)
+	##  TODO optionale absolute path
+	##  option: depth of subdir-search, depths-first
 	sub get_subdirs {
 		my $dir = shift;
 		my $option = $_[0] if defined $_[0];
@@ -198,6 +201,33 @@ print "Modul essent.pm\n";
 					default { push @subdirs, $cont; }
 				}
 			}
+		}
+		@subdirs = sort { lc($a) cmp lc($b)} @subdirs;
+		return @subdirs;
+	}
+
+	## get_subdirs
+	## out: subdirs (relative path)
+	##  TODO optionale absolute path
+	##  option: depth of subdir-search, depths-first
+	## default: depth=0 - no subdirs of subdir
+	## TODO depth>0 is too slow!
+	sub get_subdirs2 {
+		my $dir = shift;
+		my $depth = shift;
+		$depth = 0 unless defined $depth;
+		my $option;	# TODO: options-handling
+		$dir .= "\\" unless $dir =~ /\\$/;
+		opendir(DIR, $dir);
+		my @content = readdir(DIR);
+		my @subdirs;
+		foreach my $cont (@content) {
+			if (-d $dir.$cont && $cont !~ /^\./) {
+				push @subdirs, $dir.$cont;
+				push @subdirs, get_subdirs2($dir.$cont, $depth-1) if $depth > 0;
+				# if ($option eq 'num') { push @subdirs, $dir.$cont if $cont =~ /^\d/; }
+			}
+			
 		}
 		@subdirs = sort { lc($a) cmp lc($b)} @subdirs;
 		return @subdirs;
