@@ -3,7 +3,8 @@ use warnings;
 use Essent;
 
 #my $dir = "c:\\Dokumente und Einstellungen\\huesemann.POLYINTERN\\Eigene Dateien\\workspace\\excelplay\\";
-my $dir = "f:\\Users\\d-nnis\\workspace\\excelplay\\";
+#my $dir = "f:\\Users\\d-nnis\\workspace\\excelplay\\";
+my $dir = ".\\";
 my $todo = $dir."TODO.txt";
 my @ignore = qw(parse_TODO.pl);
 my $delete_tmp = 1;
