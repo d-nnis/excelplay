@@ -11,6 +11,8 @@ my $excelobj = Excelobject->new();
 $excelobj->init();
 #$excelobj->init($excelfile,4);
 
+# TODO BUG001.xlsx: source does not exist '"i:\vera6 2012\int_THPage\VZ006_2"'
+
 # TODO File::Basename
     #use File::Basename;
     #
