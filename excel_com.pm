@@ -48,7 +48,7 @@ print "Modul excel_com.pm importiert.\n";
 		#$Range = Range->new();
 		
 		## default-settings
-		$self->{add_cell} = 1;	# add cell before data dumping
+		$self->{add_cell} = 0;	# add cell before data dumping
 		$self->{transpose_level} = 0;	# insert formula instead of copy values
 		$self->{confirm_execute} = 1;
 		$self->{execute_show_all} = 0;
@@ -57,7 +57,7 @@ print "Modul excel_com.pm importiert.\n";
         $self->{execute_command} = 1;
 		
 		## Command
-		$Command->{add_cell} = 1;	# add cell before data dumping
+		$Command->{add_cell} = 0;	# add cell before data dumping
 		$Command->{transpose_level} = 0;	# insert formula instead of copy values
 		$Command->{confirm_execute} = 1;
 		$Command->{execute_show_all} = 0;
@@ -66,7 +66,7 @@ print "Modul excel_com.pm importiert.\n";
         $Command->{execute_command} = 1;
 		
 		## Guess
-		$Guess->{add_cell} = 1;	# add cell before data dumping
+		$Guess->{add_cell} = 0;	# add cell before data dumping
 		$Guess->{transpose_level} = 0;	# insert formula instead of copy values
 		$Guess->{confirm_execute} = 1;
 		$Guess->{execute_show_all} = 0;
@@ -75,7 +75,7 @@ print "Modul excel_com.pm importiert.\n";
         $Guess->{execute_command} = 1;
 		
 		## Range
-		$Range->{add_cell} = 1;	# add cell before data dumping
+		$Range->{add_cell} = 0;	# add cell before data dumping
 		$Range->{transpose_level} = 0;	# insert formula instead of copy values
 		$Range->{confirm_execute} = 1;
 		$Range->{execute_show_all} = 0;
