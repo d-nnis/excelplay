@@ -35,6 +35,27 @@ print "Modul excel_com.pm importiert.\n";
 }
 
 {
+    package ExForms;
+    @ExForms::ISA = qw(Range Excelobject);
+    
+    sub new {
+		my $class = shift;
+		my $self = {};
+		bless($self, $class);
+		#$self->init();
+		return $self;
+	}
+    
+    sub job {
+        my $self = shift;
+        #my $ex = $Excelobject->new();
+		my @data = $self->readrange(6,1,7,5);
+		return @data;
+	}
+    
+}
+
+{
 	package Excelobject;
 	$Excelobject::VERSION = "0.5";
 	#@Excelobject::ISA = qw(Range);
@@ -1084,6 +1105,16 @@ print "Modul excel_com.pm importiert.\n";
 		#$self->{WORKSHEET} = $Book->Worksheets($self->{WORKSHEETNR});
 		$self->{WORKSHEET} = $Book->Worksheets($sheet);	
 	}
+	
+	sub job {
+        my $self = shift;
+        #my $ex = $Excelobject->new();
+		$self->activecell_pos;
+		my @count = $self->readrow(@{$self->{activecell}{pos}});
+		my @data = $Range->readrange(6,1,7,5);
+		return @data;
+	}
+	
 }
 
 {
@@ -1343,6 +1374,19 @@ print "Modul excel_com.pm importiert.\n";
 		return $self;
 	}
 	
+	sub readrange {
+		my $self = shift;
+		my $range_start_row;
+        my $range_start_col;
+        my $range_end_row;
+        my $range_end_col;
+		my $cell_start = $self->{WORKSHEET}->Cells($range_start_row, $range_start_col);
+		my $cell_end = $self->{WORKSHEET}->Cells($range_end_row, $range_end_col);
+		my $Range = $self->{WORKSHEET}->Range($cell_start, $cell_end);
+		my @range_val = $Range->{"Value"};
+		return @range_val;
+	}
+	
 	sub range {
 		my $self = shift;
 		$self->{RANGE} = shift || return $self->{RANGE};
@@ -1353,6 +1397,23 @@ print "Modul excel_com.pm importiert.\n";
 		#);
 	
 
+    sub get_range {
+        my $self = shift;
+        my $range_start_row;
+        my $range_start_col;
+        my $range_end_row;
+        my $range_end_col;
+		
+		#Excelobject->
+		$self->readcol();
+		
+		
+        my $range_start;
+        my $range_end;
+        
+        my @range_val;
+    }
+	
 	## TODO: erste und letzte Cell von Range in Farbe
 	## write_range
 	## braucht: $Range->{RANGE_START}

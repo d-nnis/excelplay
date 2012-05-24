@@ -3,12 +3,19 @@ use warnings;
 use excel_com;
 use feature qw/say/;
 use File::Basename;
+
+
+
 #http://search.cpan.org/~gene/File-Backup-0.07/lib/File/Backup.pm
 
 #chdir("f:\\Users\\d-nnis\\workspace\\excelplay") or die "Can't change directory: $!";
-my $excelobj = Excelobject->new();
 
+my $excelobj = Excelobject->new();
 $excelobj->init();
+$excelobj->option(execute_command=>1, add_cell=>0, confirm_execute=>1, check_exist=>1);
+
+print $excelobj->job();
+
 #$excelobj->init($excelfile,4);
 
 # TODO BUG001.xlsx: source does not exist '"i:\vera6 2012\int_THPage\VZ006_2"'
@@ -27,7 +34,7 @@ $excelobj->init();
 #$excelobj->transpose_level(0);
 #$excelobj->{confirm_execute} = 0;
 
-$excelobj->option(execute_command=>1, add_cell=>0, confirm_execute=>1, check_exist=>1);
+
 
 # TODO confirm_execute kommt nicht an!
 #$excelobj->option(confirm_execute=>1);
@@ -41,8 +48,11 @@ $excelobj->option(execute_command=>1, add_cell=>0, confirm_execute=>1, check_exi
 
 #$excelobj->batch_col;
 #$excelobj->batch_col_VER2;
-$excelobj->batch_col_block_VER2();
+## $excelobj->batch_col_block_VER2();
 #$excelobj->batch_col_block();
+
+my $F = ExForms->new();
+#my @data = $F->job();
 
 
 # TODO work with selected area (Range)
@@ -104,7 +114,3 @@ $excelobj->join_row_block(2,14);
 #	$colstart++;
 #}
 
-
-
-
-print "__End\n";
