@@ -1,14 +1,14 @@
-2012 May 22, 7:58:18
+2012 Jul 15, 21:33:6
 excelplay.pl
 ===========
-14: TODO BUG001.xlsx: source does not exist '"i:\vera6 2012\int_THPage\VZ006_2"'
-16: TODO File::Basename
-32: TODO confirm_execute kommt nicht an!
-40: TODO wo write und execute???
-48: TODO work with selected area (Range)
-51: TODO add_cell-Problem bei Zeilen_in_1Spalte etc.
-60: TODO
-61: # regex, und regexp -handling vereinheitlichn
+28: TODO BUG001.xlsx: source does not exist '"i:\vera6 2012\int_THPage\VZ006_2"'
+30: TODO File::Basename
+46: TODO confirm_execute kommt nicht an!
+54: TODO wo write und execute???
+62: TODO work with selected area (Range)
+65: TODO add_cell-Problem bei Zeilen_in_1Spalte etc.
+74: TODO
+75: # regex, und regexp -handling vereinheitlichn
 ===========
 
 word-auto.pl
@@ -34,77 +34,81 @@ _10: package File-_215: sub get_subdirs2
 
 excel_com.pm
 ===========
-10: TODO welche Funktionen brauche ich?
-12: TODO Welche Konstanten sind mir dadurch zugänglich?
-_38: package Excelobject-_42: sub new
-89: TODO: aus Range heraus die hashes von self (Excelobject) erreichen
-_38: package Excelobject-_90: sub get_option
-97: TODO
-_38: package Excelobject-_139: sub init
-143: TODO: test, wenn keine Excel-Instanz laeuft etc.
-144: TODO: bestimmtes Excel-File öffnen
-145: TODO: alle Excel-Threads erfassen und aufzählen/ wählen, CREATOR?
-146: # You can also directly attach your program to an already running OLE server:
-211: TODO: ausbauen um mit mehreren Sheets zu arbeiten
-_38: package Excelobject-_222: sub lastlast_row
-241: TODO LASTLASTROW works!??
-251: TODO with OPTION & get_option!?
-_38: package Excelobject-_259: sub activecell_val
-270: TODO auch mit cells-object nutzbar
-_38: package Excelobject-_484: sub batch_1col
-501: TODO nicht von außen verwendbar machen! (-> eigenes Packes, not export!??)
-_38: package Excelobject-_502: sub batch_2col
-532: TODO mit Cwd?
-533: # absolute path
-534: # funktioniert nicht mit \\filer1\ etc
-_38: package Excelobject-_550: sub batch_col
-552: TODO abstrahieren, bzw. intro einer Methode immer das selbe??
-_38: package Excelobject-_595: sub Zeilen_in_1Spalte
-607: TODO lastlast_row
-608: TODO suche erste freie Zeile zum Beschreiben
-_38: package Excelobject-_645: sub Spalten_in_1Zeile
-657: TODO lastlast_row
-658: TODO suche erste freie Zeile zum Beschreiben
-_38: package Excelobject-_713: sub last_col
-724: TODO auch mit Range-Object verwendbar machen?
-_38: package Excelobject-_725: sub readcol
-731: TODO finde letzte Zelle und lies als Range - schneller?
-_38: package Excelobject-_801: sub readrow
-808: TODO row als array einmal einlesen - schneller??
-_38: package Excelobject-_818: sub join_row
-846: TODO
-_38: package Excelobject-_851: sub join_row_block
-872: TODO: write als Range-Objekt
-873: # default: add_col, write in  col+1
-880: TODO join_col_block
-_38: package Excelobject-_895: sub R1toA1
-897: TODO Unterscheide zwischen input als Cells-Objekt oder Zellen-Tupel (row, col)
-905: TODO return Range-Objekt
-_1090: package Guess-_1101: sub parse
-1105: TODO alternative mit for oder foreach...
-1109: TODO parse hier: valider op-mode?
-1113: TODO ???
-1123: TODO group1: DEL MKDIR
-_1090: package Guess-_1174: sub rebuild
-1185: TODO for (@string_split) { # funzt nicht einfach so? Liest jedes mal die Anzahl Elemente?!
-1199: TODO funzt nicht mit 'COPY i:\vera6 2012\def\TH01\*.* i:\vera6 2012\def\_sammeln'
-_1216: package Command-_1270: sub execute
-1277: TODO funktioniert trotz absolutem Pfad nicht ohne chdir?
-1315: TODO check_system_feedback, depending on operation
-_1324: package Range-_1316: sub check_system_feedback
-1333: TODO Exceobject-Variablen nicht durch Vererbung in Range verfügbar?
-_1324: package Range-_1346: sub range
-1356: TODO: erste und letzte Cell von Range in Farbe
-1357: ## write_range
-1358: ## braucht: $Range->{RANGE_START}
-_1324: package Range-_1359: sub write_range
-1366: TODO mit map:
+11: TODO welche Funktionen brauche ich?
+13: TODO Welche Konstanten sind mir dadurch zugänglich?
+_39: package Excelobject-_43: sub new
+94: TODO: aus Range heraus die hashes von self (Excelobject) erreichen
+_39: package Excelobject-_95: sub get_option
+102: TODO
+_39: package Excelobject-_144: sub init
+148: TODO: test, wenn keine Excel-Instanz laeuft etc.
+149: TODO: bestimmtes Excel-File öffnen
+150: TODO: alle Excel-Threads erfassen und aufzählen/ wählen, CREATOR?
+151: # You can also directly attach your program to an already running OLE server:
+216: TODO: ausbauen um mit mehreren Sheets zu arbeiten
+_39: package Excelobject-_227: sub lastlast_row
+246: TODO LASTLASTROW works!??
+256: TODO with OPTION & get_option!?
+_39: package Excelobject-_264: sub activecell_val
+275: TODO auch mit cells-object nutzbar
+_39: package Excelobject-_287: sub cells_address
+295: TODO array of Cells-Objects!?
+_39: package Excelobject-_568: sub batch_1col
+585: TODO nicht von außen verwendbar machen! (-> eigenes Packes, not export!??)
+_39: package Excelobject-_586: sub batch_2col
+616: TODO mit Cwd?
+617: # absolute path
+618: # funktioniert nicht mit \\filer1\ etc
+_39: package Excelobject-_634: sub batch_col
+636: TODO abstrahieren, bzw. intro einer Methode immer das selbe??
+_39: package Excelobject-_679: sub Zeilen_in_1Spalte
+691: TODO lastlast_row
+692: TODO suche erste freie Zeile zum Beschreiben
+_39: package Excelobject-_729: sub Spalten_in_1Zeile
+741: TODO lastlast_row
+742: TODO suche erste freie Zeile zum Beschreiben
+_39: package Excelobject-_907: sub add1
+918: TODO Problem: convertFormula A1 to R1C1 funktioniert nicht! (in cells_adress)
+_39: package Excelobject-_959: sub removerow
+967: TODO auch mit Range-Object verwendbar machen?
+_39: package Excelobject-_968: sub readcol
+974: TODO finde letzte Zelle und lies als Range - schneller?
+_39: package Excelobject-_1044: sub readrow
+1051: TODO row als array einmal einlesen - schneller??
+_39: package Excelobject-_1061: sub join_row
+1089: TODO
+_39: package Excelobject-_1094: sub join_row_block
+1115: TODO: write als Range-Objekt
+1116: # default: add_col, write in  col+1
+1123: TODO join_col_block
+_39: package Excelobject-_1138: sub R1toA1
+1140: TODO Unterscheide zwischen input als Cells-Objekt oder Zellen-Tupel (row, col)
+1148: TODO return Range-Objekt
+_1347: package Guess-_1358: sub parse
+1362: TODO alternative mit for oder foreach...
+1366: TODO parse hier: valider op-mode?
+1370: TODO ???
+1380: TODO group1: DEL MKDIR
+_1347: package Guess-_1431: sub rebuild
+1442: TODO for (@string_split) { # funzt nicht einfach so? Liest jedes mal die Anzahl Elemente?!
+1456: TODO funzt nicht mit 'COPY i:\vera6 2012\def\TH01\*.* i:\vera6 2012\def\_sammeln'
+_1473: package Command-_1527: sub execute
+1534: TODO funktioniert trotz absolutem Pfad nicht ohne chdir?
+1572: TODO check_system_feedback, depending on operation
+_1581: package Range-_1573: sub check_system_feedback
+1590: TODO Exceobject-Variablen nicht durch Vererbung in Range verfügbar?
+_1581: package Range-_1603: sub range
+1613: TODO: erste und letzte Cell von Range in Farbe
+1614: ## write_range
+1615: ## braucht: $Range->{RANGE_START}
+_1581: package Range-_1616: sub write_range
+1623: TODO mit map:
 ===========
 
 excel_lib.pm
 ===========
-_8: package Excellib-
-13: TODO A1-Format via Excel-Funktion
+_7: package Excellib-
+12: TODO A1-Format via Excel-Funktion
 ===========
 
-DELETING .\tmpvvip2h.html
+DELETING .\tmpacyxf6.html
