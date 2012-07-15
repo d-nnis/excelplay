@@ -8,8 +8,22 @@ use File::Basename;
 #chdir("f:\\Users\\d-nnis\\workspace\\excelplay") or die "Can't change directory: $!";
 my $excelobj = Excelobject->new();
 
-$excelobj->init();
 #$excelobj->init($excelfile,4);
+$excelobj->init();
+
+say "base, getrange";
+say $excelobj->getrange();
+$excelobj->removerow_if2();
+
+
+#$excelobj->option(debug=>1);
+#$excelobj->removerow_if();
+#$excelobj->removerow(4);
+#say "range";
+#print $excelobj->getrange();
+#say "--";
+#print "";
+__END__
 
 # TODO BUG001.xlsx: source does not exist '"i:\vera6 2012\int_THPage\VZ006_2"'
 
