@@ -4,7 +4,6 @@ use Win32::OLE;
 use Win32::OLE::Const 'Microsoft Excel';
 $Win32::OLE::Warn = 3;
 
-
 package Excellib;
 
 # in: Spalten-Zahl
