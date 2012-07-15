@@ -295,9 +295,12 @@ print "Modul excel_com.pm importiert.\n";
         # TODO array of Cells-Objects!?
         my @cells_address = split /:/, $range_address;
         say "split erg ". scalar @cells_address;
+        # default: more then one cell selected
         if (scalar @cells_address > 1) {
-            
+            $range_address =~ //;
         } else {
+            # only one cell selected
+            
             #inputFormula = "=SUM(R10C2:R15C2)"
             #MsgBox Application.ConvertFormula(formula:=inputFormula, fromReferenceStyle:=xlR1C1, toReferenceStyle:=xlA1)
             #my $conv = $self->{EXCEL}->ConvertFormula("ConvertFormula(formula:=$range_address, fromReferenceStyle:=xlR1C1, toReferenceStyle:=xlA1");
@@ -306,15 +309,12 @@ print "Modul excel_com.pm importiert.\n";
             #say "str ". $str;
             #my $conv = $self->{EXCEL}->ConvertFormula($str);
             
-            $range_address = $self->A1toR1($range_address, 'string');
+            #$range_address = $self->A1toR1($range_address, 'string');
             #ActiveCell.Address(ReferenceStyle:=xlR1C1)
             say "org form ". $range_address;
             #say "conv ". $conv;
-            #@cells_address =
+            @cells_address = ($range_address);
         }
-        
-        $range_address =~ //;
-        
         return @cells_address;
     }
     
@@ -324,7 +324,7 @@ print "Modul excel_com.pm importiert.\n";
 		# 2
         # $E$1:$G$14 (range) || $E$1 (only one cell selected)
 		#my $range_address = $self->{EXCEL}->Selection->Address();
-        my $range_address = $self->{EXCEL}->Selection->Address("toReferenceStyle:=xlR1C1");
+        my $range_address = $self->{EXCEL}->Selection->Address("FromReferenceStyle:=xlA1,ToReferenceStyle:=xlR1C1");
 		return $range_address;
         
 #        #############
@@ -938,6 +938,10 @@ print "Modul excel_com.pm importiert.\n";
         
         # array of cell-addresses
         my @cells_address = $self->cells_address();
+        
+        foreach my $cell (@cells_address) {
+            
+        }
         
         ####
 		#while ( defined $val ) {
