@@ -1,4 +1,3 @@
 use excel_com
 $ex = Excelobject->new
 $ex->init
-i $ex

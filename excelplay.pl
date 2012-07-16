@@ -11,12 +11,23 @@ use File::Basename;
 #chdir("f:\\Users\\d-nnis\\workspace\\excelplay") or die "Can't change directory: $!";
 
 my $excelobj = Excelobject->new();
-$excelobj->init();
-$excelobj->option(execute_command=>1, add_cell=>0, confirm_execute=>1, check_exist=>1);
-
-print $excelobj->job();
 
 #$excelobj->init($excelfile,4);
+$excelobj->init();
+
+say "base, getrange";
+say $excelobj->getrange();
+$excelobj->removerow_if2();
+
+
+#$excelobj->option(debug=>1);
+#$excelobj->removerow_if();
+#$excelobj->removerow(4);
+#say "range";
+#print $excelobj->getrange();
+#say "--";
+#print "";
+__END__
 
 # TODO BUG001.xlsx: source does not exist '"i:\vera6 2012\int_THPage\VZ006_2"'
 
@@ -34,7 +45,7 @@ print $excelobj->job();
 #$excelobj->transpose_level(0);
 #$excelobj->{confirm_execute} = 0;
 
-
+$excelobj->option(execute_command=>1, add_cell=>0, confirm_execute=>1, check_exist=>1);
 
 # TODO confirm_execute kommt nicht an!
 #$excelobj->option(confirm_execute=>1);

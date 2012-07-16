@@ -6,6 +6,7 @@ use Excel_lib;
 use Win32::OLE qw(in with);
 use Essent;
 use Carp;
+use Data::Dumper;
 
 # TODO welche Funktionen brauche ich?
 use Win32::OLE::Const 'Microsoft Excel';
@@ -75,6 +76,7 @@ print "Modul excel_com.pm importiert.\n";
         $self->{check_exist} = 1;   # batch_col
         $self->{dest_in_cell} = 0;  # batch col
         $self->{execute_command} = 1;
+		$self->{debug} = 0;
 		
 		## Command
 		$Command->{add_cell} = 0;	# add cell before data dumping
@@ -84,6 +86,7 @@ print "Modul excel_com.pm importiert.\n";
         $Command->{check_exist} = 1;   # batch_col
         $Command->{dest_in_cell} = 0;  # batch col
         $Command->{execute_command} = 1;
+		$Command->{debug} = 0;
 		
 		## Guess
 		$Guess->{add_cell} = 0;	# add cell before data dumping
@@ -93,6 +96,7 @@ print "Modul excel_com.pm importiert.\n";
         $Guess->{check_exist} = 1;   # batch_col
         $Guess->{dest_in_cell} = 0;  # batch col
         $Guess->{execute_command} = 1;
+		$Guess->{debug} = 0;
 		
 		## Range
 		$Range->{add_cell} = 0;	# add cell before data dumping
@@ -102,6 +106,7 @@ print "Modul excel_com.pm importiert.\n";
         $Range->{check_exist} = 1;   # batch_col
         $Range->{dest_in_cell} = 0;  # batch col
         $Range->{execute_command} = 1;
+		$Range->{debug} = 0;
 		##
 		
 		return $self;
@@ -129,7 +134,7 @@ print "Modul excel_com.pm importiert.\n";
             
         }
         my (%opts_in) = @_;
-        my @valid_opts = qw(add_cell transpose_level confirm_execute execute_show_all check_exist dest_in_cell execute_command collect_execute);
+        my @valid_opts = qw(add_cell transpose_level confirm_execute execute_show_all check_exist dest_in_cell execute_command collect_execute debug);
         my $option;
         foreach my $opt_in (keys %opts_in) {
             warn "not recognized option: $opt_in" unless grep {$opt_in eq $_} @valid_opts;
@@ -299,6 +304,85 @@ print "Modul excel_com.pm importiert.\n";
 			@{$self->{activecell}{pos}} = ($self->{EXCEL}->ActiveCell->Row, $self->{EXCEL}->ActiveCell->Column);
 		}
 	}
+	
+    sub cells_address {
+        my $self = shift;
+        # $E$1:$G$14 (range) || $E$1 (only one cell selected)
+        my $range_address = $self->getrange;
+        # parse address
+        
+        
+        # @cells_address = ((1,2),(1,3),(2,2),(2,3));
+        # TODO array of Cells-Objects!?
+        my @cells_address = split /:/, $range_address;
+        say "split erg ". scalar @cells_address;
+        # default: more then one cell selected
+        if (scalar @cells_address > 1) {
+            $range_address =~ //;
+        } else {
+            # only one cell selected
+            
+            #inputFormula = "=SUM(R10C2:R15C2)"
+            #MsgBox Application.ConvertFormula(formula:=inputFormula, fromReferenceStyle:=xlR1C1, toReferenceStyle:=xlA1)
+            #my $conv = $self->{EXCEL}->ConvertFormula("ConvertFormula(formula:=$range_address, fromReferenceStyle:=xlR1C1, toReferenceStyle:=xlA1");
+            #my $range_address = "\"=SUMME(B1:B3)\"";
+            #my $str = "formula:$range_address,FromReferenceStyle:=xlA1,ToReferenceStyle:=xlR1C1";
+            #say "str ". $str;
+            #my $conv = $self->{EXCEL}->ConvertFormula($str);
+            
+            #$range_address = $self->A1toR1($range_address, 'string');
+            #ActiveCell.Address(ReferenceStyle:=xlR1C1)
+            say "org form ". $range_address;
+            #say "conv ". $conv;
+            @cells_address = ($range_address);
+        }
+        return @cells_address;
+    }
+    
+	sub getrange {
+		my $self = shift;
+        ##############
+		# 2
+        # $E$1:$G$14 (range) || $E$1 (only one cell selected)
+		#my $range_address = $self->{EXCEL}->Selection->Address();
+        my $range_address = $self->{EXCEL}->Selection->Address("FromReferenceStyle:=xlA1,ToReferenceStyle:=xlR1C1");
+		return $range_address;
+        
+#        #############
+#		# 1
+#        # $E$1
+#		my $range_start = $self->{EXCEL}->Selection->Cells(1)->Address();
+#        # 42
+#        my $sel_count_cells = $self->count_selected_cells();
+#        # $G$14
+#		my $range_end = $self->{EXCEL}->Selection->Cells($sel_count_cells)->Address();
+#        ##############
+
+#        #############
+#		# 1b, based on Cell-Objects
+#        # $E$1
+#		#my $range_start = $self->{EXCEL}->Selection->Cells(1)->Address();
+#        my $Cells_start = $self->{EXCEL}->Selection->Cells(1);
+#        # 42
+#        $sel_count_cells = $self->{EXCEL}->Selection->Cells->Count();
+#        # $G$14
+#		my $Cells_end = $self->{EXCEL}->Selection->Cells($sel_count_cells);
+#        ##############
+
+        ##############
+        # 3: return Range-Object
+        #my $range_start = $self->{EXCEL}->Selection->Cells(1);
+        #my $range_end = $self->{EXCEL}->Selection->Cells($sel_count_cells);
+        #my $Range = $self->{WORKSHEET}->Range($range_start,$range_end);
+        #return $Range;
+        ##############
+	}
+    
+    sub count_selected_cells {
+        my $self = shift;
+        my $sel_count_cells = $self->{EXCEL}->Selection->Cells->Count();
+        return $sel_count_cells;
+    }
 	
 	## bei Daten in Zellen einfügen zuvor Zellen neu einfügen
 	## in: 0 || 1 (default)
@@ -742,6 +826,169 @@ print "Modul excel_com.pm importiert.\n";
 		return $lastcol;
 	}
 	
+	# take argument as match || read value of active-cell (argument overrides active-cell)
+	# goes down column from select row, remove if match value
+	# stop if empty ("")/ not defined
+	sub removerow_if {
+		my $self = shift;
+		my $match = shift;
+		my $debug = $self->get_option('debug');
+		$self->activecell_pos;
+		my ($row, $col) = @{$self->{activecell}{pos}};
+		unless ($match) {
+			$self->activecell_val;
+			$match = $self->{activecell}{value};
+			unless ($match) {
+				die "no parameter and no value in active cell to match against\n";
+			}
+			$row++;
+		}
+		my $count_rm_rows = 0;
+		my $count_search_rows = 0;
+		my $val = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
+		while ( defined $val ) {
+			last if $val eq '';
+			if ($val eq $match) {
+				$self->removerow($row);
+				$count_rm_rows++;
+			} else {
+				$row++;
+			}
+			say "$row" if $debug;
+			$count_search_rows++;
+			$val = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
+		}
+		say "Rows searched for '$match': $count_search_rows - Rows removed: $count_rm_rows";
+		warn "active cell is empty\n" if $count_search_rows == 0;
+	}
+    
+    ## traverse_selection
+    # higher-order perl idea
+    # traverse/ loop through a Range of Cells
+    # direction 1:
+    # call traverse_selection through action-method (e.g. add 1 to current numeric value)
+    # direction 2:
+    # call action-method through traverse_selection
+	
+    sub traverse_selection {
+        my $self = shift;
+        # Range-Object
+        # $self->{WORKSHEET}->Range
+        my $Range = shift;
+        #foreach my $Cell (@{$self->{WORKSHEET}->Range->Cells) {
+        
+        say "Range: $Range";
+        my @keys = keys %{$Range};
+        #say "Range: @keys";
+        
+        my $c = $Range->Count();
+        say "c $c";
+        #my $ad = $Range->Address();
+        say "ad ".$Range->Address();
+        #say "ad $ad";
+        say "cells ".$Range->Cells;
+        say "cuarr ".$Range->CurrentRegion;
+        #my $cell_n = $Range->Next;
+        #say "val ". $cell_n->{'Value'};
+        say "rangerow ". $Range->Row;
+        
+
+        
+        #say "@cells";
+        #say "dd";
+        #print Data::Dumper->Dumper($Range);
+        
+        say "----";
+        
+        #foreach my $Cell (@{$Range->Cells}) {
+        #    $self->add1($Cell);
+        #    # act.: $Cell->add1;
+        #}
+        
+        
+        
+        
+        #For Each c In Worksheets("Sheet1").Range("A1:D10").Cells
+        #    If Abs(c.Value) < 0.01 Then c.Value = 0
+        #Next
+    }
+    
+    
+    # print all values of worksheet (?)
+    sub used_range {
+        my $self = shift;
+        my $everything=$self->{WORKSHEET}->UsedRange()->{Value};
+        for (@$everything) {
+            for (@$_) {
+                print defined($_) ? "$_|" : "<undef>|";
+            }
+        }
+    }
+    
+    sub add1 {
+        my $self = shift;
+        # $self->{WORKSHEET}->Cells($row, $col)
+        my $Cell = shift;
+        my $value = $Cell->{'Value'};
+        $value++;
+        #$self->{WORKSHEET}->Cells($self->{row},$self->{col})->{'Value'} = $insert;
+        $Cell->{'Value'} = $value;
+    }
+    
+    # Idee: traverse through selected cells
+    # TODO Problem: convertFormula A1 to R1C1 funktioniert nicht! (in cells_adress)
+    
+    sub removerow_if2 {
+		my $self = shift;
+		my $match = shift;
+		my $debug = $self->get_option('debug');
+        # read cells start
+		$self->activecell_pos;
+		my ($row, $col) = @{$self->{activecell}{pos}};
+		unless ($match) {
+			$self->activecell_val;
+			$match = $self->{activecell}{value};
+			unless ($match) {
+				die "no parameter and no value in active cell to match against\n";
+			}
+			$row++;
+		}
+		my $count_rm_rows = 0;
+		my $count_search_rows = 0;
+		my $val = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
+        
+        # array of cell-addresses
+        my @cells_address = $self->cells_address();
+        
+        foreach my $cell (@cells_address) {
+            
+        }
+        
+        ####
+		#while ( defined $val ) {
+		#	last if $val eq '';
+		#	if ($val eq $match) {
+		#		$self->removerow($row);
+		#		$count_rm_rows++;
+		#	} else {
+		#		$row++;
+		#	}
+		#	say "$row" if $debug;
+		#	$count_search_rows++;
+		#	$val = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
+		#}
+		#say "Rows searched for '$match': $count_search_rows - Rows removed: $count_rm_rows";
+		#warn "active cell is empty\n" if $count_search_rows == 0;
+	}
+    
+    sub removerow {
+        my $self = shift;
+        my $row = shift;
+		#$self->{EXCEL}->Cells($row, $col)->Select;
+		$self->{EXCEL}->Rows($row)->Select;
+		$self->{EXCEL}->Selection->Delete;
+    }
+    
 	# TODO auch mit Range-Object verwendbar machen?
 	sub readcol {
 		my $self = shift;
@@ -927,6 +1174,20 @@ print "Modul excel_com.pm importiert.\n";
 		#my $range_object = $self->{WORKSHEET}->Range("$input0$row");
 		#return $range_object;
 	}
+    
+    sub A1toR1 {
+        my $self = shift;
+        my $cells_object = shift;
+        my $format = shift;
+        my $row;
+        my $col;
+        if ($format eq 'string') {
+            
+        } else {
+            
+        }
+        return ;
+    }
 	
 	## in: Attribute für regex_col
 	## ...
@@ -1675,6 +1936,18 @@ Range("A:A;C:C;F:F") Spalten A, C und F
     =end comment text
 
     =cut
+    
+    ##
+
+    $self->{WORKSHEET}->Shapes->AddPicture (
+        $schnipp_abs,		# Filename As String
+        1,					# LinkToFile As MsoTriState
+        1,					# SaveWithDocument As MsoTriState
+        490,				# Left As Single
+        $top_align,	# Top As Single
+        350,				# Width As Single
+        40					# Height As Single
+    );
 
 1;
 
