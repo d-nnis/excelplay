@@ -345,6 +345,8 @@ print "Modul excel_com.pm importiert.\n";
 		# 2
         # $E$1:$G$14 (range) || $E$1 (only one cell selected)
 		#my $range_address = $self->{EXCEL}->Selection->Address();
+        #my $range_address = $self->{EXCEL}->Selection->Address("ReferenceStyle:=xlR1C1");
+        #my $range_address = $self->{EXCEL}->Selection->Address(",,xlR1C1");
         my $range_address = $self->{EXCEL}->Selection->Address("FromReferenceStyle:=xlA1,ToReferenceStyle:=xlR1C1");
 		return $range_address;
         
