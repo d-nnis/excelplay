@@ -17,7 +17,7 @@ $excelobj->init();
 
 say "base, getrange";
 say $excelobj->getrange();
-$excelobj->removerow_if2();
+#$excelobj->removerow_if2();
 
 
 #$excelobj->option(debug=>1);
