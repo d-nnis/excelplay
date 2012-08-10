@@ -832,6 +832,7 @@ print "Modul excel_com.pm importiert.\n";
 	sub removerow_if {
 		my $self = shift;
 		my $match = shift;
+        my $option = shift;
 		my $debug = $self->get_option('debug');
 		$self->activecell_pos;
 		my ($row, $col) = @{$self->{activecell}{pos}};
@@ -843,12 +844,20 @@ print "Modul excel_com.pm importiert.\n";
 			}
 			$row++;
 		}
+        my $match_cond;
+        if ($option) {
+            $match_cond = '$val =~ /$match/'
+        } else {
+            $match_cond = '$val eq $match';
+        }
 		my $count_rm_rows = 0;
 		my $count_search_rows = 0;
 		my $val = $self->{WORKSHEET}->Cells($row, $col)->{'Value'};
 		while ( defined $val ) {
 			last if $val eq '';
 			if ($val eq $match) {
+            #if ($val =~ /$match/) {
+            #if ($match_cond) {
 				$self->removerow($row);
 				$count_rm_rows++;
 			} else {
