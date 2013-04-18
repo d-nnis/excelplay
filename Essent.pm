@@ -293,6 +293,46 @@ print "Modul essent.pm\n";
 {
 	package Data;
 	
+    
+    sub parse_csv {
+        my $dataref = shift;
+        my $field_sep = shift;
+        my $has_field_names = shift;
+        my $value_enclosed = shift || "";
+        my $chomp = shift || 1;
+        
+        my $sep = $value_enclosed . $field_sep . $value_enclosed;
+        
+        my @data = @{$dataref};
+        
+        my @field_names;
+        if ($has_field_names) {
+            my $headline = shift @data;
+            #@field_names = split /$field_sep/, $headline;
+            #my $sep = $value_enclosed . $field_sep . $value_enclosed;
+            chomp $headline if $chomp;
+            @field_names = split /$sep/, $headline;
+            # funktioniert noch nicht mit $value_enclosed!
+        }
+        
+        my @csv_matrix;
+        foreach my $line (@data) {
+            my @line_arr = split /$sep/, $line;
+            chomp $line_arr[-1] if $chomp;
+            push (@csv_matrix, [@line_arr]);
+        }
+        
+        
+        my %field;
+        my $i = 0;
+        foreach my $field (@field_names) {
+            $field{$field} = $i++;
+        }
+        
+        return \%field, \@csv_matrix;
+        
+    }
+    
 	# setzt neues Array aus den ~distinkten Elementen in original Reihenfolge
 	sub distinct {
 		my @arr = @_;
