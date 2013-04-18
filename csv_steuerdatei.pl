@@ -12,6 +12,7 @@ my @csv_file = File::readfile($file);
 my %field = %$field_ref;
 
 my @OUT;
+my $mathe_heftnr = 1;
 my $LfdID = 1;
 foreach my $line_ref (@$csv_matrix_ref) {
     my @line_arr = @$line_ref;
@@ -35,7 +36,19 @@ foreach my $line_ref (@$csv_matrix_ref) {
         ### SchuelerID-Zeilen
         ($CD, my @thvers) = th_ver($line_arr[$field{FachCode}], $th);
         my $th_modulus = ($i-1) % (scalar @thvers);
-        my $heftnr = $thvers[$th_modulus];
+        my $heftnr;
+        if ($line_arr[$field{FachCode}] == 3) {
+            # Mathe: 1-40 durchlaufend
+            $heftnr = $mathe_heftnr;
+            if ($mathe_heftnr == 40) {
+                $mathe_heftnr = 1;
+            } else {
+                $mathe_heftnr++;
+            }
+        } else {
+            # Deutsch, Englisch: nur nach Vorgabe
+            $heftnr = $thvers[$th_modulus];
+        }
         my $Schueler = sprintf("%02d", $i) . sprintf("%02d",$heftnr);
         $SchuelerID = $SchulID . $Schueler;
         ###
