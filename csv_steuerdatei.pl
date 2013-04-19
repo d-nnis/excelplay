@@ -4,10 +4,13 @@ use Essent;
 use feature qw/say switch/;
 use Switch;
 
-my $file = "z:\\Lernstand_VERA6 - 2013\\__VIPP\\Vera 6_Pilot_Steuerdatei_für Polyprint_final nach fächern.csv";
-my $file_out = "z:\\Lernstand_VERA6 - 2013\\__VIPP\\vera6_2013\\vera6_2013_monster.dbf";
+#my $file = "z:\\Lernstand_VERA6 - 2013\\__VIPP\\Vera 6_Pilot_Steuerdatei_für Polyprint_final nach fächern.csv";
+# Vera6_Pilot_Steuerdatei_final_DEUTSCH.csv
+#my $file_out = "z:\\Lernstand_VERA6 - 2013\\__VIPP\\vera6_2013\\vera6_2013_monster.dbf";
 
-my @csv_file = File::readfile($file);
+(my $file_in, my $file_out) = @ARGV;
+
+my @csv_file = File::readfile($file_in);
 (my $field_ref, my $csv_matrix_ref) = Data::parse_csv(\@csv_file,";",1);
 my %field = %$field_ref;
 
@@ -78,7 +81,7 @@ unshift @OUT, "XGF\n";
 unshift @OUT, "%!\n";
 ##
 
-File::writefile($file_out,@OUT);
+File::writefile_count($file_out,@OUT);
 print "Fin!\n";
 
 ### fin!
