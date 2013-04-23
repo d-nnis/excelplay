@@ -25,7 +25,35 @@ foreach my $line_ref (@$csv_matrix_ref) {
     my $SchuelerID;
     my $TG_ENDE = "";
     my $CD;
+
+    ### Laufzettel_Versand
+    #my $Laufzettel_Versand = "Laufzettel_Versand_" . $SchulID . ".pdf.tif";
+    my $Laufzettel_Versand = "1$SchulID";
+    my @line_Laufzettel = ($LfdID++,$SchulID,"",$line_arr[$field{FachName}],$line_arr[$field{Bundesland}],"",$Laufzettel_Versand,"",$line_arr[$field{Schulart_Code}],$line_arr[$field{Schulart}],$line_arr[$field{"Name der Schule"}],$line_arr[$field{Strasse}],$line_arr[$field{PLZ}],$line_arr[$field{Ort}],$TG_ENDE);
+    push @OUT, join(";", @line_Laufzettel) . "\n";
+    ###
     
+    ### Lieferschein
+    #my $Lieferschein = "Lieferschein_" . $SchulID . ".pdf.tif";
+    my $Lieferschein = "2$SchulID";
+    my @line_Lieferschein = ($LfdID++,$SchulID,"",$line_arr[$field{FachName}],$line_arr[$field{Bundesland}],"",$Lieferschein,"",$line_arr[$field{Schulart_Code}],$line_arr[$field{Schulart}],$line_arr[$field{"Name der Schule"}],$line_arr[$field{Strasse}],$line_arr[$field{PLZ}],$line_arr[$field{Ort}],$TG_ENDE);
+    push @OUT, join(";", @line_Lieferschein) . "\n";
+    ###
+    
+    ### TL_Skript
+    my $tl_skript_nr = tl_skript($line_arr[$field{FachCode}], $th);
+    my @line_tl_skript = ($LfdID++,$SchulID,"",$line_arr[$field{FachName}],$line_arr[$field{Bundesland}],"",$tl_skript_nr,"",$line_arr[$field{Schulart_Code}],$line_arr[$field{Schulart}],$line_arr[$field{"Name der Schule"}],$line_arr[$field{Strasse}],$line_arr[$field{PLZ}],$line_arr[$field{Ort}],$TG_ENDE);
+    push @OUT, join(";", @line_tl_skript) . "\n";
+    
+    #if ($line_arr[$field{FachCode}] == 1 || $line_arr[$field{FachCode}] == 3) {
+    #    my $tl_skript_nr = tl_skript($line_arr[$field{FachCode}], $th);
+    #    my @line_tl_skript = ($LfdID++,$SchulID,"",$line_arr[$field{FachName}],$line_arr[$field{Bundesland}],"",$tl_skript_nr,"",$line_arr[$field{Schulart_Code}],$line_arr[$field{Schulart}],$line_arr[$field{"Name der Schule"}],$line_arr[$field{Strasse}],$line_arr[$field{PLZ}],$line_arr[$field{Ort}],$TG_ENDE);
+    #    push @OUT, join(";", @line_tl_skript) . "\n";
+    #    
+    #}
+    ###
+        
+    ### Teshefte
     for (my $i=1; $i<= $Hefte; $i++) {
         ### SchuelerID-Zeilen
         ($CD, my @thvers) = th_ver($line_arr[$field{FachCode}], $th);
@@ -51,39 +79,13 @@ foreach my $line_ref (@$csv_matrix_ref) {
         # print "i: $i -- @line --\n";
         push @OUT, join(";", @line) . "\n";
     }
-    
-    ### TL_Skript
-    my $tl_skript_nr = tl_skript($line_arr[$field{FachCode}], $th);
-    my @line_tl_skript = ($LfdID++,$SchulID,"",$line_arr[$field{FachName}],$line_arr[$field{Bundesland}],"",$tl_skript_nr,"",$line_arr[$field{Schulart_Code}],$line_arr[$field{Schulart}],$line_arr[$field{"Name der Schule"}],$line_arr[$field{Strasse}],$line_arr[$field{PLZ}],$line_arr[$field{Ort}],$TG_ENDE);
-    push @OUT, join(";", @line_tl_skript) . "\n";
-    
-    #if ($line_arr[$field{FachCode}] == 1 || $line_arr[$field{FachCode}] == 3) {
-    #    my $tl_skript_nr = tl_skript($line_arr[$field{FachCode}], $th);
-    #    my @line_tl_skript = ($LfdID++,$SchulID,"",$line_arr[$field{FachName}],$line_arr[$field{Bundesland}],"",$tl_skript_nr,"",$line_arr[$field{Schulart_Code}],$line_arr[$field{Schulart}],$line_arr[$field{"Name der Schule"}],$line_arr[$field{Strasse}],$line_arr[$field{PLZ}],$line_arr[$field{Ort}],$TG_ENDE);
-    #    push @OUT, join(";", @line_tl_skript) . "\n";
-    #    
-    #}
     ###
     
-    ### Lieferschein
-    #my $Lieferschein = "Lieferschein_" . $SchulID . ".pdf.tif";
-    my $Lieferschein = "2$SchulID";
-    my @line_Lieferschein = ($LfdID++,$SchulID,"",$line_arr[$field{FachName}],$line_arr[$field{Bundesland}],"",$Lieferschein,"",$line_arr[$field{Schulart_Code}],$line_arr[$field{Schulart}],$line_arr[$field{"Name der Schule"}],$line_arr[$field{Strasse}],$line_arr[$field{PLZ}],$line_arr[$field{Ort}],$TG_ENDE);
-    push @OUT, join(";", @line_Lieferschein) . "\n";
-    ###
-    
-    ### Laufzettel_Versand
-    #my $Laufzettel_Versand = "Laufzettel_Versand_" . $SchulID . ".pdf.tif";
-    my $Laufzettel_Versand = "1$SchulID";
-    my @line_Laufzettel = ($LfdID++,$SchulID,"",$line_arr[$field{FachName}],$line_arr[$field{Bundesland}],"",$Laufzettel_Versand,"",$line_arr[$field{Schulart_Code}],$line_arr[$field{Schulart}],$line_arr[$field{"Name der Schule"}],$line_arr[$field{Strasse}],$line_arr[$field{PLZ}],$line_arr[$field{Ort}],$TG_ENDE);
-    push @OUT, join(";", @line_Laufzettel) . "\n";
-    ###
-    
-    ## X am Ende (Trennblatt)
+    ### X am Ende (Trennblatt)
     $TG_ENDE = "X";
     my @line_tg_ende = ($LfdID++,$SchulID,"",$line_arr[$field{FachName}],$line_arr[$field{Bundesland}],"","",$CD,$line_arr[$field{Schulart_Code}],$line_arr[$field{Schulart}],$line_arr[$field{"Name der Schule"}],$line_arr[$field{Strasse}],$line_arr[$field{PLZ}],$line_arr[$field{Ort}],$TG_ENDE);
     push @OUT, join(";", @line_tg_ende) . "\n";
-    ##
+    ###
     
 }
 
