@@ -11,9 +11,13 @@ use File::Basename;
 #chdir("f:\\Users\\d-nnis\\workspace\\excelplay") or die "Can't change directory: $!";
 
 my $excelobj = Excelobject->new();
-
 #$excelobj->init($excelfile,4);
 $excelobj->init();
+
+
+$excelobj->hashcol();
+
+die("ending");
 
 say "base, getrange";
 say $excelobj->getrange();

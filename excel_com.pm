@@ -4,6 +4,7 @@ use warnings;
 use feature qw(say switch);
 use Excel_lib;
 use Win32::OLE qw(in with);
+use Digest::MD5;
 use Essent;
 use Carp;
 use Data::Dumper;
@@ -412,6 +413,43 @@ print "Modul excel_com.pm importiert.\n";
 		my $self = shift;
 		$self->{row} = shift;
 		$self->{col} = shift;
+	}
+	
+	sub hashcol {
+		my $self = shift;
+		my $readrow = shift;
+		my $readcol = shift;
+		my $writerow = shift;
+		my $writecol = shift;
+		$self->{transpose_level} = 0 unless defined $self->{transpose_level};
+		unless (defined $readrow && defined $readcol) {
+			$self->activecell_pos();
+			($readrow, $readcol) = @{$self->{activecell}{pos}};
+		}
+		unless (defined $writerow && defined $writecol) {
+			# TODO lastlast_row
+			# TODO suche erste freie Zeile zum Beschreiben
+			if (defined $self->{activecell}{aim}) {
+				($writerow, $writecol) = @{$self->{activecell}{aim}};
+			} else {	# default
+				$writerow = $readrow;
+				$writecol = $readcol+1;
+			}
+		}
+		
+		my @input = $self->readcol();
+		print "input: @input\n";
+		my @md5hash;
+		foreach my $in (@input) {
+			my $md5 = Digest::MD5::md5_hex $in;
+			print "in:", $in, " out:", $md5, "\n";
+			push @md5hash, [$md5];
+		}
+		#print Digest::MD5::md5_hex "zeichen1";
+		$Range->{WORKSHEET} = $self->{WORKSHEET};
+		print "start:$writerow, $writecol\n";
+		$Range->{RANGE_START} = $Range->{WORKSHEET}->Cells($writerow, $writecol);
+		$Range->write_range(@md5hash);
 	}
 	
 	## getter und setter für regular expression
