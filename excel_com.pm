@@ -38,7 +38,8 @@ print "Modul excel_com.pm importiert.\n";
 
 {
     package ExForms;
-    @ExForms::ISA = qw(Range Excelobject);
+    #@ExForms::ISA = qw(Range Excelobject);
+    @ExForms::ISA = qw(Range Exo);
     
     sub new {
 		my $class = shift;
@@ -58,7 +59,7 @@ print "Modul excel_com.pm importiert.\n";
 }
 
 {
-	package Excelobject;
+	package Exo;
 	$Excelobject::VERSION = "0.5";
 	#@Excelobject::ISA = qw(Range);
 	
@@ -72,7 +73,7 @@ print "Modul excel_com.pm importiert.\n";
 		## default-settings
 		$self->{add_cell} = 0;	# add cell before data dumping
 		$self->{transpose_level} = 0;	# insert formula instead of copy values
-		$self->{confirm_execute} = 1;
+		$self->{confirm_execute} = 0;
 		$self->{execute_show_all} = 0;
         $self->{check_exist} = 1;   # batch_col
         $self->{dest_in_cell} = 0;  # batch col
@@ -82,7 +83,7 @@ print "Modul excel_com.pm importiert.\n";
 		## Command
 		$Command->{add_cell} = 0;	# add cell before data dumping
 		$Command->{transpose_level} = 0;	# insert formula instead of copy values
-		$Command->{confirm_execute} = 1;
+		$Command->{confirm_execute} = 0;
 		$Command->{execute_show_all} = 0;
         $Command->{check_exist} = 1;   # batch_col
         $Command->{dest_in_cell} = 0;  # batch col
@@ -92,7 +93,7 @@ print "Modul excel_com.pm importiert.\n";
 		## Guess
 		$Guess->{add_cell} = 0;	# add cell before data dumping
 		$Guess->{transpose_level} = 0;	# insert formula instead of copy values
-		$Guess->{confirm_execute} = 1;
+		$Guess->{confirm_execute} = 0;
 		$Guess->{execute_show_all} = 0;
         $Guess->{check_exist} = 1;   # batch_col
         $Guess->{dest_in_cell} = 0;  # batch col
@@ -102,7 +103,7 @@ print "Modul excel_com.pm importiert.\n";
 		## Range
 		$Range->{add_cell} = 0;	# add cell before data dumping
 		$Range->{transpose_level} = 0;	# insert formula instead of copy values
-		$Range->{confirm_execute} = 1;
+		$Range->{confirm_execute} = 0;
 		$Range->{execute_show_all} = 0;
         $Range->{check_exist} = 1;   # batch_col
         $Range->{dest_in_cell} = 0;  # batch col
@@ -519,7 +520,7 @@ print "Modul excel_com.pm importiert.\n";
         foreach (@collect_execute) {
             my ($path_execute, $filename, $batch_string) = @$_;
             File::writefile($filename, $batch_string);
-            $Command->execute_batch($path_execute, $filename) if $self->get_option("execute_command");
+			$Command->execute_batch($path_execute, $filename) if $self->get_option("execute_command");
         }
 	}
     ## batch_col_block_VER2
@@ -626,6 +627,66 @@ print "Modul excel_com.pm importiert.\n";
         }
 	}
 	
+    
+    ## noch nicht fertig!
+    ## batch_col_block_VER3
+    # col1                              col2
+    # copy                              move
+    # i:\projekte\ela_2015\tee\	        i:\projekte\ela_2015\tee\
+    # i:\projekte\ela_2015\tee\cache\	i:\projekte\ela_2015\tee\dest\
+    # S000001.tif debla.tif         	S000001.tif debla2.tif
+    # S000002.tif intro1.tif	        S000002.tif intro12.tif
+    # S000003.tif intro2.tif	        S000003.tif intro22.tif
+    # S000004.tif stopp1.tif	        S000004.tif stopp12.tif
+    # S000005.tif VZ008_1.tif	        S000005.tif VZ008_12.tif
+    #
+    # --> copy i:\projekte\ela_2015\tee\S000001.tif i:\projekte\ela_2015\tee\cache\debla.tif
+    # ...
+    
+	sub batch_col_block_VER3 {
+		my $self = shift;
+		my $row = shift;
+		my $col = shift;
+		if (!defined $row && !defined $col) {
+			$self->activecell_pos();
+			($row, $col) = @{$self->{activecell}{pos}};
+		}
+		
+		my $jump_col;
+        my @collect_execute;
+        $self->option(collect_execute=>1);
+		while (defined $self->{WORKSHEET}->Cells($row, $col)->{'Value'}) {
+			## cell: operation-mode
+			my $op = $self->get_op($row, $col);
+			# one or two columns-jump? del -> 1, copy -> 2
+			# if ( ${$Command->{op}}{$op} eq "group1" ) {
+				# $jump_col = 1;
+			# } elsif ( ${$Command->{op}}{$op} eq "group2" ) {
+				# $jump_col = 2;
+            # }
+            $row++;
+            my $source = $self->get_source($row, $col);
+            $row++;
+            my $dest = $self->get_dest = ($row, $col);
+			
+			# $path_execute, $filename, $batch_string
+            push @collect_execute, [$self->batch_col_VER2($row, $col, $op)];
+            #$col += $jump_col;
+			
+		}
+        die "ActiveCell is empty!" unless (@collect_execute);
+        $self->option(collect_execute=>0);
+        
+        # executes sammeln
+        #my $Command = Command->new;
+        foreach (@collect_execute) {
+            my ($path_execute, $filename, $batch_string) = @$_;
+            File::writefile($filename, $batch_string);
+            $Command->execute_batch($path_execute, $filename) if $self->get_option("execute_command");
+        }
+	}
+
+    
 	sub batch_1col {
 		my $self = shift;
 		my $row = shift;
@@ -1430,7 +1491,8 @@ print "Modul excel_com.pm importiert.\n";
 {
     package Guess;
     $Guess::VERSION = "0.1";
-    @Guess::ISA = qw(Excelobject);
+    #@Guess::ISA = qw(Excelobject);
+    @Guess::ISA = qw(Exo);
     
 	sub new {
 		my $class = shift;
@@ -1557,7 +1619,8 @@ print "Modul excel_com.pm importiert.\n";
     package Command;
 	$Command::VERSION = "0.1";
     # base class: Excelobject (method-scope)
-    @Command::ISA = qw(Excelobject);
+    #@Command::ISA = qw(Excelobject);
+    @Command::ISA = qw(Exo);
 
 	sub new {
 		my $class = shift;
@@ -1599,7 +1662,8 @@ print "Modul excel_com.pm importiert.\n";
 		if ($self->get_option("confirm_execute")) {
 		#if ($self->{confirm_execute}) {
 			print "Execute ", $filename, "?\n";
-			if (Process::confirmJN()) {
+            #if (Process::confirmJN()) {
+			if (Process::confirmJNdie()) {
 				$self->execute($path_execute, $filename);
 			} else {
 				print "File not executed\n";
@@ -1672,7 +1736,8 @@ print "Modul excel_com.pm importiert.\n";
 	# nötig?
 	# ja, damit auch die Excelobjekte gehandhabt werden können (Cells, Range etc.)
 	# TODO Exceobject-Variablen nicht durch Vererbung in Range verfügbar?
-	@Range::ISA = qw(Excelobject);
+	#@Range::ISA = qw(Excelobject);
+    @Range::ISA = qw(Exo);
 	#use base 'Excelobject'; # sets @MyCritter::ISA = ('Critter');
 	
 	sub new {
@@ -1781,7 +1846,8 @@ print "Modul excel_com.pm importiert.\n";
 
 {
 	package Complete_Excel;
-	@Complete_Excel::ISA = qw(Excelobject);
+    #@Complete_Excel::ISA = qw(Excelobject);
+	@Complete_Excel::ISA = qw(E);
 	
 	sub new {
 		my $class = shift;
@@ -1867,7 +1933,8 @@ print "Modul excel_com.pm importiert.\n";
 {
 	# Read-Version-Structure Objekt
 	package RVS;
-	@RVS::ISA = qw(Excelobject);
+	#@RVS::ISA = qw(Excelobject);
+    @RVS::ISA = qw(Exo);
 	
 	sub new {
 		my $class = shift;
