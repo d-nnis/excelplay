@@ -626,6 +626,66 @@ print "Modul excel_com.pm importiert.\n";
         }
 	}
 	
+    
+    ## noch nicht fertig!
+    ## batch_col_block_VER3
+    # col1                              col2
+    # copy                              move
+    # i:\projekte\ela_2015\tee\	        i:\projekte\ela_2015\tee\
+    # i:\projekte\ela_2015\tee\cache\	i:\projekte\ela_2015\tee\dest\
+    # S000001.tif debla.tif         	S000001.tif debla2.tif
+    # S000002.tif intro1.tif	        S000002.tif intro12.tif
+    # S000003.tif intro2.tif	        S000003.tif intro22.tif
+    # S000004.tif stopp1.tif	        S000004.tif stopp12.tif
+    # S000005.tif VZ008_1.tif	        S000005.tif VZ008_12.tif
+    #
+    # --> copy i:\projekte\ela_2015\tee\S000001.tif i:\projekte\ela_2015\tee\cache\debla.tif
+    # ...
+    
+	sub batch_col_block_VER3 {
+		my $self = shift;
+		my $row = shift;
+		my $col = shift;
+		if (!defined $row && !defined $col) {
+			$self->activecell_pos();
+			($row, $col) = @{$self->{activecell}{pos}};
+		}
+		
+		my $jump_col;
+        my @collect_execute;
+        $self->option(collect_execute=>1);
+		while (defined $self->{WORKSHEET}->Cells($row, $col)->{'Value'}) {
+			## cell: operation-mode
+			my $op = $self->get_op($row, $col);
+			# one or two columns-jump? del -> 1, copy -> 2
+			# if ( ${$Command->{op}}{$op} eq "group1" ) {
+				# $jump_col = 1;
+			# } elsif ( ${$Command->{op}}{$op} eq "group2" ) {
+				# $jump_col = 2;
+            # }
+            $row++;
+            my $source = $self->get_source($row, $col);
+            $row++;
+            my $dest = $self->get_dest = ($row, $col);
+			
+			# $path_execute, $filename, $batch_string
+            push @collect_execute, [$self->batch_col_VER2($row, $col, $op)];
+            #$col += $jump_col;
+			
+		}
+        die "ActiveCell is empty!" unless (@collect_execute);
+        $self->option(collect_execute=>0);
+        
+        # executes sammeln
+        #my $Command = Command->new;
+        foreach (@collect_execute) {
+            my ($path_execute, $filename, $batch_string) = @$_;
+            File::writefile($filename, $batch_string);
+            $Command->execute_batch($path_execute, $filename) if $self->get_option("execute_command");
+        }
+	}
+
+    
 	sub batch_1col {
 		my $self = shift;
 		my $row = shift;
