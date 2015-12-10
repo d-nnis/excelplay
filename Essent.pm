@@ -281,6 +281,21 @@ print "Modul essent.pm\n";
 	}
 	
 
+    sub confirmJNdie {
+		my $eingabe='';
+		my @exp_keys = ('j','n');
+		until (grep {$eingabe eq $_} @exp_keys) {
+			print "(j)a, (n)ein oder (c)Abbruch... \n>";
+			$eingabe = <STDIN>;
+			chomp $eingabe;
+		}
+        given ($eingabe) {
+            when ('c') { die "Abbruch\n"; }
+            when ('j') { return 1; }
+            when ('n') { return 0; }
+        }
+    }
+    
 	sub getTime {
 		my $sec; my $min; my $hour; my $mday; my $mon; my $year; my $wday; my $yday; my $isdst;
 		my @abbr = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
