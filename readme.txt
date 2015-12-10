@@ -11,6 +11,7 @@ s.a. http://web6.codeprobe.de/wikka/Perl#hn_wordplay
 
 
 perl -de0
-$ex = Excelobject->new
+#ALT: $ex = Excelobject->new
+neu: $ex = Exo->new
 $ex->init
 $ex->batch_col_block
